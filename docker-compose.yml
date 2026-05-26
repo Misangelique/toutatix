@@ -1,0 +1,79 @@
+services:
+  node:
+    image: toutatix-api-nodejs1
+    restart: always
+    build:
+      context: ./api-nodejs/build
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    networks:
+      - toutatix_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+  php_apache:
+    image: toutatix-api-php1
+    build:
+      context: ./api-php/build
+      dockerfile: Dockerfile
+    container_name: '${APP_NAME}-server'
+    restart: always
+    ports:
+      - 8080:80
+    working_dir: /var/www/html
+    environment:
+      MYSQL_USER: '${MYSQL_USER}'
+      MYSQL_PASSWORD: '${MYSQL_PASS}'
+      MYSQL_DATABASE: '${MYSQL_DB}'
+      TZ: 'Europe/Paris'
+    volumes:
+      - ./api-php/app:/var/www/html
+      - ./api-php/app/public/data:/data
+      - ./api-php/web/000-default.conf:/etc/apache2/sites-available/000-default.conf
+      - ./api-php/web/php.ini:/usr/local/etc/php/conf.d/extra-php-config.ini
+    depends_on:
+      db_server:
+        condition: service_started
+      node:
+        condition: service_healthy
+    networks:
+      - toutatix_net
+
+  db_server:
+    image: mariadb:12.1
+    container_name: '${APP_NAME}-db'
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: '${MYSQL_ROOT_PASS}'
+      MYSQL_USER: '${MYSQL_USER}'
+      MYSQL_PASSWORD: '${MYSQL_PASS}'
+      MYSQL_DATABASE: '${MYSQL_DB}'
+      TZ: 'Europe/Paris'
+    volumes:
+      - ./db/data:/var/lib/mysql
+      - ./api-php/app/public/data:/data
+      - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./db/init_schema.sql:/docker-entrypoint-initdb.d/init_schema.sql
+    networks:
+      - toutatix_net
+
+  db_admin:
+    image: phpmyadmin:5-apache
+    container_name: '${APP_NAME}-db-admin'
+    restart: always
+    ports:
+      - '${APP_DB_ADMIN_PORT}:80'
+    environment:
+      PMA_HOST: db_server
+    depends_on:
+      - db_server
+    networks:
+      - toutatix_net
+
+networks:
+  toutatix_net:

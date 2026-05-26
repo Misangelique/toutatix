@@ -1,0 +1,262 @@
+/* ===========================
+   GLOBAL.TOUTATIX
+   Palette + typo + composants
+   =========================== */
+
+:root {
+  /* Couleurs principales */
+  --noir: #020004;
+  --blanc: #ffffff;
+  --blanc-jaune: #fefae0;
+  --rouge: #c8102e;
+  --jaune: #fccc38;
+  --marron-jaune: #6f5600;
+  --marron-noir: #5c403f;
+  --rose-jaune: #ffe9e2;
+  --vert-jaune: #f4ead5;
+  --vert: #81c810;
+
+  /* Ombres / bordures */
+  --border-strong: 4px solid #2c1810;
+  --border-soft: 3px solid #2c1810;
+  --shadow-hard: 4px 4px 0px 0px #2c1810;
+  --shadow-soft: 2px 2px 0px 0px #2c1810;
+  --shadow-brown: 4px 4px 0px 0px #906f6e;
+
+  /* Espacements responsives */
+  --margin-sm: 16px;
+  --margin-md: 32px;
+
+  /* Interpolation texte (ton système) */
+  --min-screen-size: 430;
+}
+
+/* Base HTML / BODY */
+
+html {
+  height: 100%;
+  font-size: 16px;
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-color: #fff8f6;
+  color: var(--marron-noir);
+}
+
+/* Typographie utilitaire – on garde tes classes */
+
+.menu1 {
+  font-size: 20px;
+  font-family: "Titan One", system-ui;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: -0.5px;
+}
+
+.menu2 {
+  color: #ffdad8;
+  font-size: clamp(17px, 1.4vw, 20px);
+  font-family: "Titan One", system-ui;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: -0.5px;
+}
+
+.titre {
+  color: #9e001f;
+  font-size: 24px;
+  font-family: "Irish Grover", system-ui;
+  font-weight: 400;
+  line-height: 1.833;
+  letter-spacing: -2px;
+}
+
+.sous-titre1 {
+  font-size: 32px;
+  font-family: "Spline Sans", system-ui;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.sous-titre2 {
+  color: #9e001f;
+  font-size: clamp(22px, 2.2vw, 32px);
+  font-family: "Spline Sans", system-ui;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.contenu1 {
+  color: #5c403f;
+  font-size: 16px;
+  font-family: "Plus Jakarta Sans", system-ui;
+  line-height: 1.5;
+}
+
+.contenu2 {
+  color: #5c403f;
+  font-size: clamp(15px, 1vw, 16px);
+  font-family: "Plus Jakarta Sans", system-ui;
+  line-height: 1.5;
+}
+
+.text {
+  font-size: 15px;
+  font-family: "Titan One", system-ui;
+  font-weight: 400;
+  line-height: 1.867;
+  letter-spacing: -0.5px;
+}
+
+/* Sections globales (barres de titre) */
+
+.section {
+  box-shadow: 0 4px 0 0 #2c1810;
+  display: flex;
+  align-items: center;
+  padding-inline: 20px;
+  border-bottom: 4px solid #2c1810;
+}
+
+.section-light1 {
+  box-shadow: 0 -4px 0 0 #2c1810;
+  display: flex;
+  align-items: center;
+  background-color: var(--vert-jaune);
+  padding-inline: 12px;
+  border-top: 4px solid #2c1810;
+}
+
+.section-light2 {
+  box-shadow: var(--shadow-brown);
+  display: flex;
+  align-items: center;
+  background-color: #fff8f6;
+  padding-inline: 20px;
+  border-bottom: 4px solid #906f6e;
+}
+
+/* Cartes génériques */
+
+.card {
+  border-radius: 12px;
+  border: var(--border-strong);
+  background-color: var(--blanc-jaune);
+  box-shadow: var(--shadow-hard);
+}
+
+.card-light {
+  box-shadow: 4px 0 0 0 #906f6e;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff1ec;
+  padding-inline: 16px;
+  border-right: 4px solid #906f6e;
+}
+
+.card-red {
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  align-items: center;
+  background-color: var(--rouge);
+  padding: 8px 17px 8px 24px;
+  border: var(--border-soft);
+  color: var(--blanc);
+}
+
+.card-yellow {
+  box-shadow: var(--shadow-hard);
+  display: flex;
+  background-color: var(--jaune);
+  padding: 8px 6px;
+  border: 4px solid #906f6e;
+}
+
+/* Boutons génériques */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 4px solid #2c1810;
+  font-family: "Titan One", system-ui;
+  font-size: 15px;
+  text-transform: uppercase;
+  cursor: pointer;
+  background-color: #fdf6e9;
+  color: #2c1810;
+  text-align: center;
+}
+
+.btn-primary {
+  background-color: var(--rouge);
+  color: var(--blanc);
+}
+
+.btn-secondary {
+  background-color: var(--marron-noir);
+  color: var(--blanc-jaune);
+}
+
+.btn-yellow {
+  background-color: var(--jaune);
+  border-color: #906f6e;
+  box-shadow: var(--shadow-brown);
+}
+
+.btn-ghost {
+  background-color: #ffdbce;
+  border-color: #906f6e;
+}
+
+/* Effets hover */
+
+.hover-dark:hover {
+  filter: brightness(0.9);
+}
+
+.hover-bright:hover {
+  filter: brightness(1.1);
+}
+
+/* Badges / petites pastilles */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 3px solid #2c1810;
+  font-family: "Titan One", system-ui;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.badge-green {
+  background-color: var(--vert);
+  color: #132400;
+}
+
+.badge-red {
+  background-color: var(--rouge);
+  color: #ffe9e2;
+}
+
+.badge-blue {
+  background-color: #4a8aff;
+  color: #ffffff;
+}
+
+.badge-yellow {
+  background-color: var(--jaune);
+  color: var(--marron-jaune);
+}

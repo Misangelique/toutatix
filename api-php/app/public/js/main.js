@@ -1,0 +1,293 @@
+// js/main.js
+import { state, setToken, loadTokenFromStorage, computeStats } from './state.js';
+import { login, postGuess, putFeedback, getGuesses, getGuessesImages, deleteGuesses } from './api.js';
+import { renderCharts } from './charts.js';
+import { initNavigation, switchView, setText, updateTokenUI, updateKPIs, renderHistory } from './ui.js';
+
+let selectedFile = null;
+
+// variables caméra
+let cameraPreviewEl = null;
+let startCameraBtn = null;
+let stopCameraBtn = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  // navigation
+  initNavigation();
+  switchView('analyse');
+
+  // token depuis storage
+  loadTokenFromStorage();
+  updateTokenUI();
+
+  // vue Analyse (upload + feedback + caméra)
+  initAnalyseEvents();
+
+  // Historique + Connexion
+  initHistoryEvents();
+  initLoginEvents();
+
+  // stats initiales
+  computeStats([]);
+  updateKPIs();
+  renderCharts();
+});
+
+function initAnalyseEvents() {
+  const fileInput = document.getElementById('guessFile');
+  const preview = document.getElementById('previewImage');
+  const dropzoneContent = document.getElementById('dropzoneContent');
+
+  // === caméra ===
+  cameraPreviewEl = document.getElementById('cameraPreview');
+  startCameraBtn = document.getElementById('startCameraBtn');
+  stopCameraBtn = document.getElementById('stopCameraBtn');
+
+  if (startCameraBtn && cameraPreviewEl) {
+    startCameraBtn.addEventListener('click', startCamera);
+  }
+  if (stopCameraBtn && cameraPreviewEl) {
+    stopCameraBtn.addEventListener('click', stopCamera);
+  }
+
+  // === upload fichier ===
+  document.getElementById('triggerFileBtn')?.addEventListener('click', () => fileInput.click());
+
+  fileInput?.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      preview.src = ev.target.result;
+      preview.style.display = 'block';
+      dropzoneContent.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById('resetGuessBtn')?.addEventListener('click', () => {
+    selectedFile = null;
+    if (fileInput) fileInput.value = '';
+    if (preview) {
+      preview.src = '';
+      preview.style.display = 'none';
+    }
+    if (dropzoneContent) dropzoneContent.style.display = 'flex';
+    setText('analyseMessage', 'Sélection effacée.');
+  });
+
+  document.getElementById('sendGuessBtn')?.addEventListener('click', onSendGuess);
+
+  document.querySelectorAll('[data-feedback]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const val = Number(btn.dataset.feedback);
+      onFeedback(val);
+    });
+  });
+}
+
+// ==== caméra ====
+
+async function startCamera() {
+  if (!cameraPreviewEl) return;
+
+  if (state.cameraStream) {
+    cameraPreviewEl.style.display = 'block';
+    return;
+  }
+
+  try {
+    // d'abord, on regarde s'il y a au moins une caméra
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const hasVideo = devices.some(d => d.kind === 'videoinput');
+
+    if (!hasVideo) {
+      setText('analyseMessage', 'Aucune caméra détectée sur cet appareil.');
+      return;
+    }
+
+    // contraintes vidéo simples (pas de facingMode agressif)
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false
+    });
+
+    state.cameraStream = stream;
+    cameraPreviewEl.srcObject = stream;
+    cameraPreviewEl.style.display = 'block';
+    setText('analyseMessage', 'Caméra activée.');
+  } catch (err) {
+    setText('analyseMessage', `Impossible d’accéder à la caméra : ${err.name || ''} ${err.message}`);
+  }
+}
+
+function stopCamera() {
+  if (!cameraPreviewEl) return;
+
+  if (state.cameraStream) {
+    state.cameraStream.getTracks().forEach(t => t.stop());
+    state.cameraStream = null;
+  }
+  cameraPreviewEl.srcObject = null;
+  cameraPreviewEl.style.display = 'none';
+  setText('analyseMessage', 'Caméra désactivée.');
+}
+
+// ==== analyse / feedback ====
+
+async function onSendGuess() {
+  if (!selectedFile) {
+    setText('analyseMessage', 'Choisis une image avant de lancer l’analyse.');
+    return;
+  }
+  setText('analyseMessage', 'Envoi de l’image…');
+
+  try {
+    const data = await postGuess(selectedFile);
+    state.lastGuess = data;
+
+    document.getElementById('guessResultLabel').textContent = (data.guess || 'Inconnu').toUpperCase();
+    document.getElementById('guessIdBadge').textContent = `ID : ${data.id ?? '—'}`;
+    document.getElementById('guessMetaText').textContent =
+      `Image : ${data.imagepath || 'n/a'} · Date : ${data.date || 'n/a'}`;
+
+    setText('analyseMessage', 'Prédiction reçue.');
+    setText('feedbackMessage', 'Tu peux maintenant envoyer un feedback.');
+  } catch (err) {
+    setText('analyseMessage', `Erreur : ${err.message}`);
+  }
+}
+
+async function onFeedback(win) {
+  if (!state.lastGuess?.id) {
+    setText('feedbackMessage', 'Aucune prédiction à corriger.');
+    return;
+  }
+  setText('feedbackMessage', 'Envoi du feedback…');
+
+  try {
+    const data = await putFeedback(state.lastGuess.id, win);
+    setText('feedbackMessage', `Feedback enregistré. Total : ${data.total ?? '—'} · Wins : ${data.win ?? '—'}`);
+
+    if (state.token) {
+      const guesses = await getGuesses();
+      state.guesses = guesses;
+      computeStats(guesses);
+      updateKPIs();
+      renderHistory();
+      renderCharts();
+    }
+  } catch (err) {
+    setText('feedbackMessage', `Erreur : ${err.message}`);
+  }
+}
+
+// ==== login ====
+
+function initLoginEvents() {
+  document.getElementById('loginBtn')?.addEventListener('click', async () => {
+    const email = document.getElementById('emailInput').value.trim();
+    const pass = document.getElementById('passwordInput').value.trim();
+
+    if (!email || !pass) {
+      setText('loginMessage', 'Renseigne email et mot de passe.');
+      return;
+    }
+
+    setText('loginMessage', 'Connexion en cours…');
+
+    try {
+      const data = await login(email, pass);
+      setToken(data.token);
+      updateTokenUI();
+      setText('loginMessage', data.message || 'Connexion réussie.');
+
+      const guesses = await getGuesses();
+      state.guesses = guesses;
+      computeStats(guesses);
+      updateKPIs();
+      renderHistory();
+      renderCharts();
+
+      switchView('historique');
+    } catch (err) {
+      setToken('');
+      updateTokenUI();
+      setText('loginMessage', `Erreur : ${err.message}`);
+    }
+  });
+
+  document.getElementById('logoutBtn')?.addEventListener('click', () => {
+    setToken('');
+    state.guesses = [];
+    computeStats([]);
+    updateTokenUI();
+    updateKPIs();
+    renderHistory();
+    renderCharts();
+    setText('loginMessage', 'Déconnecté.');
+  });
+}
+
+// ==== historique ====
+
+function initHistoryEvents() {
+  document.getElementById('refreshHistoryBtn')?.addEventListener('click', async () => {
+    if (!state.token) {
+      setText('historyMessage', 'Connexion requise pour lire l’historique.');
+      return;
+    }
+    setText('historyMessage', 'Chargement…');
+    try {
+      const guesses = await getGuesses();
+      state.guesses = guesses;
+      computeStats(guesses);
+      updateKPIs();
+      renderHistory();
+      renderCharts();
+      setText('historyMessage', `${guesses.length} entrée(s) chargée(s).`);
+    } catch (err) {
+      setText('historyMessage', `Erreur : ${err.message}`);
+    }
+  });
+
+  document.getElementById('downloadImagesBtn')?.addEventListener('click', async () => {
+    if (!state.token) {
+      setText('historyMessage', 'Connexion requise pour télécharger le ZIP.');
+      return;
+    }
+    try {
+      const blob = await getGuessesImages();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'toutatix-images.zip';
+      a.click();
+      URL.revokeObjectURL(url);
+      setText('historyMessage', 'Archive ZIP téléchargée.');
+    } catch (err) {
+      setText('historyMessage', `Erreur : ${err.message}`);
+    }
+  });
+
+  document.getElementById('deleteAllBtn')?.addEventListener('click', async () => {
+    if (!state.token) {
+      setText('historyMessage', 'Connexion admin requise pour supprimer.');
+      return;
+    }
+    if (!confirm('Supprimer tout l’historique et toutes les images ?')) return;
+
+    try {
+      const data = await deleteGuesses();
+      setText('historyMessage', data.message || 'Historique supprimé.');
+      state.guesses = [];
+      computeStats([]);
+      updateKPIs();
+      renderHistory();
+      renderCharts();
+    } catch (err) {
+      setText('historyMessage', `Erreur : ${err.message}`);
+    }
+  });
+}
