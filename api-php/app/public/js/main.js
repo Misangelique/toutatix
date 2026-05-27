@@ -231,7 +231,46 @@ function initLoginEvents() {
   });
 }
 
+async function downloadImage(url, filename = 'image.jpg') {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(objectUrl);
+    setText('historyMessage', 'Téléchargement lancé.');
+  } catch (err) {
+    setText('historyMessage', `Téléchargement impossible : ${err.message}`);
+  }
+}
+
 function initHistoryEvents() {
+
+  document.getElementById('historyGrid')?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.guess-download-btn');
+    if (!btn) return;
+
+    const url = btn.dataset.imageUrl;
+    const filename = btn.dataset.filename || 'guess-image.jpg';
+
+    if (!url) {
+      setText('historyMessage', 'Aucune image à télécharger.');
+      return;
+    }
+
+    await downloadImage(url, filename);
+  });
+
+
   document.getElementById('refreshHistoryBtn')?.addEventListener('click', async () => {
     if (!state.token) {
       setText('historyMessage', 'Connexion requise pour lire l’historique.');

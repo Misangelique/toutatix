@@ -2,47 +2,68 @@
 import { state } from './state.js';
 import { renderCharts } from './charts.js';
 
-const views = document.querySelectorAll('.view');
-const sidebarButtons = document.querySelectorAll('.nav-btn');
-const mobileButtons = document.querySelectorAll('.mobile-btn');
 const API_HOST = 'http://localhost:8080';
+const PROTECTED_VIEWS = new Set(['historique', 'stats']);
+
+function getViews() {
+  return document.querySelectorAll('.view');
+}
+
+function getSidebarButtons() {
+  return document.querySelectorAll('.nav-btn');
+}
+
+function getMobileButtons() {
+  return document.querySelectorAll('.mobile-btn');
+}
 
 function buildImageUrl(imagePath) {
   if (!imagePath) return '';
   if (/^https?:\/\//i.test(imagePath)) return imagePath;
-
-
   return `${API_HOST}/data/uploads/${imagePath.replace(/^\/+/, '')}`;
 }
 
+function getDownloadFilename(guess) {
+  const rawGuess = String(guess?.guess || 'image').trim().toLowerCase();
+  const safeGuess = rawGuess || 'image';
+  const safeId = guess?.id ?? 'unknown';
+  return `toutatix-${safeGuess}-${safeId}.jpg`;
+}
+
 export function switchView(name) {
-  views.forEach(v => {
-    const match = v.classList.contains(`view-${name}`);
+  let target = name;
+
+  if (PROTECTED_VIEWS.has(target) && !state.token) {
+    setText('loginMessage', 'Connexion requise pour accéder à cette vue.');
+    target = 'connexion';
+  }
+
+  getViews().forEach(v => {
+    const match = v.classList.contains(`view-${target}`);
     v.classList.toggle('view-active', match);
   });
 
-  sidebarButtons.forEach(btn => {
-    const isActive = btn.dataset.view === name;
+  getSidebarButtons().forEach(btn => {
+    const isActive = btn.dataset.view === target;
     btn.classList.toggle('nav-btn-active', isActive);
   });
 
-  mobileButtons.forEach(btn => {
-    const isActive = btn.dataset.view === name;
+  getMobileButtons().forEach(btn => {
+    const isActive = btn.dataset.view === target;
     btn.classList.toggle('mobile-btn-active', isActive);
   });
 
-  if (name === 'stats') {
+  if (target === 'stats') {
     renderCharts();
   }
 }
 
-
 export function initNavigation() {
-  sidebarButtons.forEach(btn => {
+  getSidebarButtons().forEach(btn => {
     btn.addEventListener('click', () => switchView(btn.dataset.view));
   });
 
-  mobileButtons.forEach(btn => {
+  getMobileButtons().forEach(btn => {
     btn.addEventListener('click', () => switchView(btn.dataset.view));
   });
 }
@@ -60,10 +81,15 @@ export function updateTokenUI() {
 }
 
 export function updateKPIs() {
-  document.getElementById('kpiTotal').textContent = String(state.stats.total);
-  document.getElementById('kpiAccuracy').textContent = `${state.stats.accuracy}%`;
-  document.getElementById('kpiAsterix').textContent = String(state.stats.asterix);
-  document.getElementById('kpiObelix').textContent = String(state.stats.obelix);
+  const total = document.getElementById('kpiTotal');
+  const accuracy = document.getElementById('kpiAccuracy');
+  const asterix = document.getElementById('kpiAsterix');
+  const obelix = document.getElementById('kpiObelix');
+
+  if (total) total.textContent = String(state.stats.total);
+  if (accuracy) accuracy.textContent = `${state.stats.accuracy}%`;
+  if (asterix) asterix.textContent = String(state.stats.asterix);
+  if (obelix) obelix.textContent = String(state.stats.obelix);
 }
 
 export function renderHistory() {
@@ -72,10 +98,19 @@ export function renderHistory() {
   if (!container || !empty) return;
 
   container.innerHTML = '';
-  if (!state.guesses.length) {
+
+  if (!state.token) {
     empty.style.display = 'block';
+    empty.textContent = 'Connexion requise pour afficher l’historique.';
     return;
   }
+
+  if (!state.guesses.length) {
+    empty.style.display = 'block';
+    empty.textContent = 'Aucun guess enregistré pour le moment.';
+    return;
+  }
+
   empty.style.display = 'none';
 
   state.guesses.forEach(g => {
@@ -84,12 +119,17 @@ export function renderHistory() {
 
     const thumb = document.createElement('div');
     thumb.className = 'guess-thumb';
-    if (g.imagepath) {
+
+    const imageUrl = buildImageUrl(g.imagepath);
+
+    if (imageUrl) {
       const img = document.createElement('img');
-      img.src =  buildImageUrl(g.imagepath);  // <--- ON CORRIGE ICI, PAS LE RESTE
+      img.src = imageUrl;
       img.alt = `Guess ${g.id}`;
+      img.loading = 'lazy';
       thumb.appendChild(img);
     }
+
     card.appendChild(thumb);
 
     const body = document.createElement('div');
@@ -127,6 +167,21 @@ export function renderHistory() {
     path.style.fontSize = '11px';
     path.textContent = `Image : ${g.imagepath || 'non fournie'}`;
     body.appendChild(path);
+
+    if (imageUrl) {
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+
+      const downloadBtn = document.createElement('button');
+      downloadBtn.type = 'button';
+      downloadBtn.className = 'btn btn-ghost hover-dark guess-download-btn';
+      downloadBtn.dataset.imageUrl = imageUrl;
+      downloadBtn.dataset.filename = getDownloadFilename(g);
+      downloadBtn.textContent = 'Télécharger l’image';
+
+      actions.appendChild(downloadBtn);
+      body.appendChild(actions);
+    }
 
     card.appendChild(body);
     container.appendChild(card);
