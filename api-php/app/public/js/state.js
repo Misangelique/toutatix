@@ -1,10 +1,7 @@
 // js/state.js
 
-export const state = {
-  token: '',
-  guesses: [],
-  lastGuess: null,
-  stats: {
+function createEmptyStats() {
+  return {
     total: 0,
     wins: 0,
     invalid: 0,
@@ -23,9 +20,86 @@ export const state = {
     obelixFalse: 0,
     obelixUnknown: 0,
     obelixNoFeedback: 0
+  };
+}
+
+export const state = {
+  token: '',
+  auth: {
+    isAuthenticated: false,
+    isAdmin: false,
+    isExpired: false,
+    user: null
   },
+  guesses: [],
+  lastGuess: null,
+  stats: createEmptyStats(),
   cameraStream: null
 };
+
+function decodeBase64Url(base64Url) {
+  let base64 = String(base64Url || '')
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+
+  while (base64.length % 4 !== 0) {
+    base64 += '=';
+  }
+
+  return atob(base64);
+}
+
+function decodeJwtPayload(token) {
+  try {
+    const parts = String(token || '').split('.');
+    if (parts.length < 2) return null;
+
+    const json = decodeURIComponent(
+        decodeBase64Url(parts[1])
+            .split('')
+            .map(c => `%${(`00${c.charCodeAt(0).toString(16)}`).slice(-2)}`)
+            .join('')
+    );
+
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeRole(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function extractIsAdmin(payload) {
+  if (!payload) return false;
+
+  if (payload.admin === true) return true;
+  if (payload.isAdmin === true) return true;
+
+  if (normalizeRole(payload.role) === 'admin') return true;
+
+  if (Array.isArray(payload.roles)) {
+    return payload.roles.some(role => normalizeRole(role) === 'admin');
+  }
+
+  return false;
+}
+
+function extractIsExpired(payload) {
+  if (!payload || typeof payload.exp !== 'number') return false;
+  const nowInSeconds = Math.floor(Date.now() / 1000);
+  return payload.exp <= nowInSeconds;
+}
+
+function syncAuthFromToken() {
+  const payload = decodeJwtPayload(state.token);
+
+  state.auth.user = payload || null;
+  state.auth.isExpired = extractIsExpired(payload);
+  state.auth.isAdmin = extractIsAdmin(payload);
+  state.auth.isAuthenticated = !!state.token && !state.auth.isExpired;
+}
 
 export function setToken(token) {
   state.token = token || '';
@@ -37,46 +111,37 @@ export function setToken(token) {
       sessionStorage.removeItem('toutatix_token');
     }
   } catch {
-    // stockage indisponible, on garde juste l'état en mémoire
+    // stockage indisponible
   }
+
+  syncAuthFromToken();
 }
 
 export function loadTokenFromStorage() {
   try {
     const t = sessionStorage.getItem('toutatix_token');
-    if (t) state.token = t;
+    if (t) {
+      state.token = t;
+    } else {
+      state.token = '';
+    }
   } catch {
-    // stockage indisponible
+    state.token = '';
   }
+
+  syncAuthFromToken();
   return state.token;
 }
 
-
 export function computeStats(guesses) {
-  const stats = {
-    total: guesses.length,
-    wins: 0,
-    invalid: 0,
-    losses: 0,
-    noFeedback: 0,
-    asterix: 0,
-    obelix: 0,
-    accuracy: 0,
-
-    asterixTrue: 0,
-    asterixFalse: 0,
-    asterixUnknown: 0,
-    asterixNoFeedback: 0,
-
-    obelixTrue: 0,
-    obelixFalse: 0,
-    obelixUnknown: 0,
-    obelixNoFeedback: 0
-  };
+  const stats = createEmptyStats();
+  stats.total = guesses.length;
 
   for (const g of guesses) {
     const guess = String(g.guess || '').trim().toLowerCase();
-    const win = g.win === null || g.win === undefined || g.win === '' ? null : Number(g.win);
+    const win = g.win === null || g.win === undefined || g.win === ''
+        ? null
+        : Number(g.win);
 
     if (guess === 'asterix') {
       stats.asterix++;

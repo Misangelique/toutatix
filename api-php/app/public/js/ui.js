@@ -33,7 +33,7 @@ function getDownloadFilename(guess) {
 export function switchView(name) {
   let target = name;
 
-  if (PROTECTED_VIEWS.has(target) && !state.token) {
+  if (PROTECTED_VIEWS.has(target) && !state.auth.isAuthenticated) {
     setText('loginMessage', 'Connexion requise pour accéder à cette vue.');
     target = 'connexion';
   }
@@ -73,10 +73,16 @@ export function setText(id, text) {
   if (el) el.textContent = text;
 }
 
-export function updateTokenUI() {
+export function updateAuthUI() {
   const status = document.getElementById('tokenStatus');
+  const deleteBtn = document.getElementById('deleteAllBtn');
+
   if (status) {
-    status.textContent = state.token ? 'Connecté' : 'Non connecté';
+    status.textContent = state.auth.isAuthenticated ? 'Connecté' : 'Non connecté';
+  }
+
+  if (deleteBtn) {
+    deleteBtn.style.display = state.auth.isAdmin ? '' : 'none';
   }
 }
 
@@ -99,7 +105,7 @@ export function renderHistory() {
 
   container.innerHTML = '';
 
-  if (!state.token) {
+  if (!state.auth.isAuthenticated) {
     empty.style.display = 'block';
     empty.textContent = 'Connexion requise pour afficher l’historique.';
     return;
