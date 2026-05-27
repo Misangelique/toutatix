@@ -33,6 +33,121 @@ function doughnutDataset(values, colors) {
   };
 }
 
+// Images chargées en module pour pouvoir les dessiner directement sur le canvas.
+const romanHelmetImage = new Image();
+romanHelmetImage.src = new URL('../assets/stats-le-village/Casque_Romain.png', import.meta.url).href;
+
+const asterixImage = new Image();
+asterixImage.src = new URL('../assets/stats-le-village/Asterix_Transparent.png', import.meta.url).href;
+
+const obelixImage = new Image();
+obelixImage.src = new URL('../assets/stats-le-village/Obelix_Transparent.png', import.meta.url).href;
+
+const idefixImage = new Image();
+idefixImage.src = new URL('../assets/stats-le-village/Idefix_Transparent.png', import.meta.url).href;
+
+const FEEDBACK_ICON_IMAGE_SIZE = 40;
+const FEEDBACK_ICON_UNKNOWN_SIZE = 36;
+// Astérix est un peu plus grand que la base, Obélix légèrement agrandi seulement.
+const ASTERIX_ICON_SIZE = FEEDBACK_ICON_IMAGE_SIZE * 2;
+const OBELIX_ICON_SIZE = FEEDBACK_ICON_IMAGE_SIZE * 1.5;
+
+function ensureImageRedrawOnLoad(chart, image) {
+  // Si l'image n'est pas encore prête, on redessine le chart dès qu'elle est chargée.
+  if (!image || image.complete || image.__toutatixReadyListenerAttached) return;
+
+  image.__toutatixReadyListenerAttached = true;
+  image.addEventListener('load', () => chart.draw());
+}
+
+function drawImageIcon(ctx, image, x, y, size = FEEDBACK_ICON_IMAGE_SIZE) {
+  if (!image || !image.complete || !image.naturalWidth) return;
+
+  // On conserve le ratio d'origine pour éviter d'écraser l'image.
+  const ratio = image.naturalWidth / image.naturalHeight;
+  let drawWidth = size;
+  let drawHeight = size;
+
+  if (ratio > 1) {
+    drawHeight = size / ratio;
+  } else {
+    drawWidth = size * ratio;
+  }
+
+  ctx.drawImage(image, x - drawWidth / 2, y - drawHeight, drawWidth, drawHeight);
+}
+
+function drawUnknownIcon(ctx, x, y, size = FEEDBACK_ICON_UNKNOWN_SIZE) {
+  ctx.save();
+  ctx.translate(x, y - size / 2);
+
+  ctx.fillStyle = '#fff8f6';
+  ctx.strokeStyle = '#2c1810';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = '#2c1810';
+  ctx.font = `bold ${Math.max(11, Math.floor(size * 0.72))}px Spline Sans, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('?', 0, 0.5);
+
+  ctx.restore();
+}
+
+const feedbackIconsPlugin = {
+  id: 'feedbackIconsPlugin',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+
+    // On dessine une icône au-dessus de chaque barre visible selon la série.
+    chart.data.datasets.forEach((dataset, datasetIndex) => {
+      const meta = chart.getDatasetMeta(datasetIndex);
+      if (!meta || meta.hidden) return;
+
+      meta.data.forEach((element, pointIndex) => {
+        const value = Number(dataset.data?.[pointIndex] ?? 0);
+        if (!(value > 0)) return;
+
+        const iconX = element.x;
+        const iconY = element.y - 10;
+
+        if (datasetIndex === 0) {
+          const characterImage = pointIndex === 0 ? asterixImage : obelixImage;
+          ensureImageRedrawOnLoad(chart, characterImage);
+          drawImageIcon(
+            ctx,
+            characterImage,
+            iconX,
+            iconY,
+            pointIndex === 0 ? ASTERIX_ICON_SIZE : OBELIX_ICON_SIZE
+          );
+          return;
+        }
+
+        if (datasetIndex === 1) {
+          ensureImageRedrawOnLoad(chart, romanHelmetImage);
+          drawImageIcon(ctx, romanHelmetImage, iconX, iconY, FEEDBACK_ICON_IMAGE_SIZE);
+          return;
+        }
+
+        if (datasetIndex === 2) {
+          drawUnknownIcon(ctx, iconX, iconY, FEEDBACK_ICON_UNKNOWN_SIZE);
+          return;
+        }
+
+        if (datasetIndex === 3) {
+          ensureImageRedrawOnLoad(chart, idefixImage);
+          drawImageIcon(ctx, idefixImage, iconX, iconY, FEEDBACK_ICON_IMAGE_SIZE);
+        }
+      });
+    });
+  }
+};
+
 export function renderCharts() {
   const { stats } = state;
 
@@ -129,6 +244,18 @@ export function renderCharts() {
   }
 
   if (characterDetailCanvas) {
+    const characterMaxValue = Math.max(
+      stats.asterixTrue,
+      stats.asterixFalse,
+      stats.asterixUnknown,
+      stats.asterixNoFeedback,
+      stats.obelixTrue,
+      stats.obelixFalse,
+      stats.obelixUnknown,
+      stats.obelixNoFeedback,
+      1
+    );
+
     characterDetailChart = new Chart(characterDetailCanvas, {
       type: 'bar',
       data: {
@@ -169,9 +296,14 @@ export function renderCharts() {
         ]
       },
       options: {
-        indexAxis: 'y',
+        indexAxis: 'x',
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+          padding: {
+            top: 52
+          }
+        },
         interaction: {
           mode: 'index',
           intersect: false
@@ -195,8 +327,6 @@ export function renderCharts() {
         },
         scales: {
           x: {
-            stacked: true,
-            beginAtZero: true,
             ticks: {
               color: '#5c4039',
               precision: 0
@@ -206,19 +336,22 @@ export function renderCharts() {
             }
           },
           y: {
-            stacked: true,
+            beginAtZero: true,
+            suggestedMax: characterMaxValue + 1,
             ticks: {
               color: '#2c1810',
               font: {
                 weight: 'bold'
-              }
+              },
+              stepSize: 1
             },
             grid: {
               display: false
             }
           }
         }
-      }
+      },
+      plugins: [feedbackIconsPlugin]
     });
   }
 }
