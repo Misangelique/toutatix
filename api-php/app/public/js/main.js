@@ -12,33 +12,30 @@ let startCameraBtn = null;
 let stopCameraBtn = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  // navigation
   initNavigation();
   switchView('analyse');
 
-  // token depuis storage
   loadTokenFromStorage();
   updateTokenUI();
 
-  // vue Analyse (upload + feedback + caméra)
   initAnalyseEvents();
-
-  // Historique + Connexion
   initHistoryEvents();
   initLoginEvents();
 
-  // stats initiales
   computeStats([]);
   updateKPIs();
+  renderHistory();
   renderCharts();
+
 });
+
+
 
 function initAnalyseEvents() {
   const fileInput = document.getElementById('guessFile');
   const preview = document.getElementById('previewImage');
   const dropzoneContent = document.getElementById('dropzoneContent');
 
-  // === caméra ===
   cameraPreviewEl = document.getElementById('cameraPreview');
   startCameraBtn = document.getElementById('startCameraBtn');
   stopCameraBtn = document.getElementById('stopCameraBtn');
@@ -46,34 +43,40 @@ function initAnalyseEvents() {
   if (startCameraBtn && cameraPreviewEl) {
     startCameraBtn.addEventListener('click', startCamera);
   }
+
   if (stopCameraBtn && cameraPreviewEl) {
     stopCameraBtn.addEventListener('click', stopCamera);
   }
 
-  // === upload fichier ===
-  document.getElementById('triggerFileBtn')?.addEventListener('click', () => fileInput.click());
+  document.getElementById('triggerFileBtn')?.addEventListener('click', () => fileInput?.click());
 
   fileInput?.addEventListener('change', e => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
+
     selectedFile = file;
+
     const reader = new FileReader();
     reader.onload = ev => {
-      preview.src = ev.target.result;
-      preview.style.display = 'block';
-      dropzoneContent.style.display = 'none';
+      if (preview) {
+        preview.src = ev.target?.result;
+        preview.style.display = 'block';
+      }
+      if (dropzoneContent) dropzoneContent.style.display = 'none';
     };
     reader.readAsDataURL(file);
   });
 
   document.getElementById('resetGuessBtn')?.addEventListener('click', () => {
     selectedFile = null;
+
     if (fileInput) fileInput.value = '';
     if (preview) {
       preview.src = '';
       preview.style.display = 'none';
     }
     if (dropzoneContent) dropzoneContent.style.display = 'flex';
+
     setText('analyseMessage', 'Sélection effacée.');
   });
 
@@ -87,8 +90,6 @@ function initAnalyseEvents() {
   });
 }
 
-// ==== caméra ====
-
 async function startCamera() {
   if (!cameraPreviewEl) return;
 
@@ -98,7 +99,6 @@ async function startCamera() {
   }
 
   try {
-    // d'abord, on regarde s'il y a au moins une caméra
     const devices = await navigator.mediaDevices.enumerateDevices();
     const hasVideo = devices.some(d => d.kind === 'videoinput');
 
@@ -107,7 +107,6 @@ async function startCamera() {
       return;
     }
 
-    // contraintes vidéo simples (pas de facingMode agressif)
     const stream = await navigator.mediaDevices.getUserMedia({
       video: true,
       audio: false
@@ -129,18 +128,18 @@ function stopCamera() {
     state.cameraStream.getTracks().forEach(t => t.stop());
     state.cameraStream = null;
   }
+
   cameraPreviewEl.srcObject = null;
   cameraPreviewEl.style.display = 'none';
   setText('analyseMessage', 'Caméra désactivée.');
 }
-
-// ==== analyse / feedback ====
 
 async function onSendGuess() {
   if (!selectedFile) {
     setText('analyseMessage', 'Choisis une image avant de lancer l’analyse.');
     return;
   }
+
   setText('analyseMessage', 'Envoi de l’image…');
 
   try {
@@ -150,7 +149,7 @@ async function onSendGuess() {
     document.getElementById('guessResultLabel').textContent = (data.guess || 'Inconnu').toUpperCase();
     document.getElementById('guessIdBadge').textContent = `ID : ${data.id ?? '—'}`;
     document.getElementById('guessMetaText').textContent =
-      `Image : ${data.imagepath || 'n/a'} · Date : ${data.date || 'n/a'}`;
+        `Image : ${data.imagepath || 'n/a'} · Date : ${data.date || 'n/a'}`;
 
     setText('analyseMessage', 'Prédiction reçue.');
     setText('feedbackMessage', 'Tu peux maintenant envoyer un feedback.');
@@ -164,6 +163,7 @@ async function onFeedback(win) {
     setText('feedbackMessage', 'Aucune prédiction à corriger.');
     return;
   }
+
   setText('feedbackMessage', 'Envoi du feedback…');
 
   try {
@@ -177,13 +177,12 @@ async function onFeedback(win) {
       updateKPIs();
       renderHistory();
       renderCharts();
+
     }
   } catch (err) {
     setText('feedbackMessage', `Erreur : ${err.message}`);
   }
 }
-
-// ==== login ====
 
 function initLoginEvents() {
   document.getElementById('loginBtn')?.addEventListener('click', async () => {
@@ -210,6 +209,7 @@ function initLoginEvents() {
       renderHistory();
       renderCharts();
 
+
       switchView('historique');
     } catch (err) {
       setToken('');
@@ -226,11 +226,10 @@ function initLoginEvents() {
     updateKPIs();
     renderHistory();
     renderCharts();
+
     setText('loginMessage', 'Déconnecté.');
   });
 }
-
-// ==== historique ====
 
 function initHistoryEvents() {
   document.getElementById('refreshHistoryBtn')?.addEventListener('click', async () => {
@@ -238,7 +237,9 @@ function initHistoryEvents() {
       setText('historyMessage', 'Connexion requise pour lire l’historique.');
       return;
     }
+
     setText('historyMessage', 'Chargement…');
+
     try {
       const guesses = await getGuesses();
       state.guesses = guesses;
@@ -246,6 +247,7 @@ function initHistoryEvents() {
       updateKPIs();
       renderHistory();
       renderCharts();
+
       setText('historyMessage', `${guesses.length} entrée(s) chargée(s).`);
     } catch (err) {
       setText('historyMessage', `Erreur : ${err.message}`);
@@ -257,6 +259,7 @@ function initHistoryEvents() {
       setText('historyMessage', 'Connexion requise pour télécharger le ZIP.');
       return;
     }
+
     try {
       const blob = await getGuessesImages();
       const url = URL.createObjectURL(blob);
@@ -276,6 +279,7 @@ function initHistoryEvents() {
       setText('historyMessage', 'Connexion admin requise pour supprimer.');
       return;
     }
+
     if (!confirm('Supprimer tout l’historique et toutes les images ?')) return;
 
     try {
@@ -286,6 +290,7 @@ function initHistoryEvents() {
       updateKPIs();
       renderHistory();
       renderCharts();
+
     } catch (err) {
       setText('historyMessage', `Erreur : ${err.message}`);
     }
