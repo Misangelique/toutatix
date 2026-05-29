@@ -111,7 +111,8 @@ export function updateAuthUI() {
 export function updateKPIs() {
   const totalEl = document.getElementById('kpiTotal');
   const accEl = document.getElementById('kpiAccuracy');
-  const noteEl = document.getElementById('kpiNote');
+  const noteTotal = document.getElementById('kpiNoteTotal');
+  const noteAcc = document.getElementById('kpiNoteAccuracy');
 
   if (!totalEl || !accEl) return;
 
@@ -122,8 +123,11 @@ export function updateKPIs() {
   if (fbCount === 0) {
     totalEl.textContent = '--';
     accEl.textContent = '-- %';
-    if (noteEl) {
-      noteEl.textContent = 'Donne un premier feedback pour voir tes stats.';
+    if (noteTotal) {
+      noteTotal.textContent = 'Donne un feedback pour voir tes stats.';
+    }
+    if (noteAcc) {
+      noteAcc.textContent = 'Basée sur les images annotées.';
     }
     return;
   }
@@ -135,8 +139,11 @@ export function updateKPIs() {
   totalEl.textContent = String(total);
   accEl.textContent = `${accuracy} %`;
 
-  if (noteEl) {
-    noteEl.textContent = `Basé sur ${fbCount} image(s) annotée(s).`;
+  if (noteTotal) {
+    noteTotal.textContent = `Basé sur ${fbCount} image(s) annotée(s).`;
+  }
+  if (noteAcc) {
+    noteAcc.textContent = 'Précision sur ton historique.';
   }
 }
 

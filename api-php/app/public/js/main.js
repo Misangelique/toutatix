@@ -32,8 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initNavAutoRefresh();
 });
 
+// ---------------- NAV AUTO REFRESH ----------------
 
-// écoute les clics de nav envoyés par ui.js
 function initNavAutoRefresh() {
   window.addEventListener('toutatix:navigate', async (e) => {
     const targetView = e.detail?.view;
@@ -44,7 +44,10 @@ function initNavAutoRefresh() {
       try {
         await refreshProtectedData();
       } catch (err) {
-        handleAuthError(err, targetView === 'historique' ? 'historyMessage' : 'loginMessage');
+        handleAuthError(
+            err,
+            targetView === 'historique' ? 'historyMessage' : 'loginMessage'
+        );
         return;
       }
     }
@@ -53,6 +56,7 @@ function initNavAutoRefresh() {
   });
 }
 
+// ---------------- AUTH HELPERS ----------------
 
 function resetAppAfterLogout(message = 'Déconnecté.') {
   setToken('');
@@ -89,6 +93,32 @@ function handleAuthError(err, fallbackMessageId, fallbackPrefix = 'Erreur') {
   return false;
 }
 
+// ---------------- SYNC LAST GUESS / CARD ----------------
+
+function syncLastGuessFeedbackCard() {
+  // si on n'a pas de dernière prédiction, rien à faire
+  if (!state.lastGuess?.id) return;
+
+  const updated = Array.isArray(state.guesses)
+      ? state.guesses.find(g => g.id === state.lastGuess.id)
+      : null;
+
+  const hasFeedback =
+      updated &&
+      (updated.win === 1 || updated.win === 0 || updated.win === -1 ||
+          updated.win === '1' || updated.win === '0' || updated.win === '-1');
+
+  if (hasFeedback) {
+    // on synchronise le win localement
+    state.lastGuess.win = updated.win;
+    // on masque la carte de feedback, car l'image est déjà annotée
+    hideResultFeedbackCard();
+    setText('feedbackMessage', 'Feedback déjà enregistré pour cette image.');
+  }
+}
+
+// ---------------- PROTECTED DATA REFRESH ----------------
+
 async function refreshProtectedData(successMessage = '') {
   if (!state.auth.isAuthenticated) {
     renderHistory();
@@ -103,10 +133,15 @@ async function refreshProtectedData(successMessage = '') {
   renderHistory();
   renderCharts();
 
+  // très important : recaler la card "Défie-moi" sur l'état réel
+  syncLastGuessFeedbackCard();
+
   if (successMessage) {
     setText('historyMessage', successMessage);
   }
 }
+
+// ---------------- ANALYSE / CAMERA ----------------
 
 function initAnalyseEvents() {
   const fileInput = document.getElementById('guessFile');
@@ -125,7 +160,6 @@ function initAnalyseEvents() {
     stopCameraBtn.addEventListener('click', stopCamera);
   }
   updateCameraButtons();
-
 
   fileInput?.addEventListener('change', e => {
     const file = e.target.files?.[0];
@@ -173,8 +207,6 @@ function updateCameraButtons() {
   if (!startCameraBtn || !stopCameraBtn) return;
 
   const isOn = !!state.cameraStream;
-
-  // caméra allumée -> on montre "Couper", on cache "Activer"
   startCameraBtn.style.display = isOn ? 'none' : '';
   stopCameraBtn.style.display = isOn ? '' : 'none';
 }
@@ -228,6 +260,8 @@ function stopCamera() {
   updateCameraButtons();
 }
 
+// ---------------- GUESS + FEEDBACK (Défie-moi) ----------------
+
 async function onSendGuess() {
   if (!selectedFile) {
     setText('analyseMessage', 'Choisis une image avant de lancer l\'analyse.');
@@ -253,7 +287,6 @@ async function onSendGuess() {
     setText('analyseMessage', 'Prédiction reçue.');
     setText('feedbackMessage', 'Tu peux maintenant envoyer un feedback.');
 
-    // afficher la carte Résultat et feedback
     showResultFeedbackCard();
   } catch (err) {
     setText('analyseMessage', `Erreur : ${err.message}`);
@@ -284,13 +317,12 @@ async function onFeedback(win) {
     // marquer localement le feedback sur la dernière prédiction
     state.lastGuess.win = win;
 
-    // ============================
     // MODE ANONYME (non connecté)
-    // ============================
     if (!state.auth.isAuthenticated) {
       const totalEl = document.getElementById('kpiTotal');
       const accEl = document.getElementById('kpiAccuracy');
-      const noteEl = document.getElementById('kpiNote');
+      const noteTotal = document.getElementById('kpiNoteTotal');
+      const noteAcc = document.getElementById('kpiNoteAccuracy');
 
       if (totalEl && accEl && data && typeof data.total === 'number' && typeof data.win === 'number') {
         const total = data.total;
@@ -300,38 +332,45 @@ async function onFeedback(win) {
         totalEl.textContent = String(total);
         accEl.textContent = `${acc} %`;
 
-        if (noteEl) {
-          noteEl.textContent = `Basé sur ${total} image(s) feedbackées (global).`;
+        if (noteTotal) {
+          noteTotal.textContent = `Basé sur ${total} image(s) feedbackées (global).`;
+        }
+        if (noteAcc) {
+          noteAcc.textContent = 'Précision globale tous utilisateurs.';
         }
       }
 
-    } else {
-      // ============================
-      // MODE CONNECTÉ (stats perso)
-      // ============================
-
-      // si on a déjà l'historique en mémoire, on met à jour l'entrée correspondante
-      if (Array.isArray(state.guesses) && state.guesses.length > 0) {
-        const idx = state.guesses.findIndex(g => g.id === state.lastGuess.id);
-        if (idx !== -1) {
-          state.guesses[idx] = { ...state.guesses[idx], win };
-        }
-
-        // recalcul complet des stats utilisateur et update des KPI
-        computeStats(state.guesses);
-        updateKPIs();
-      }
-
-      // et on synchronise avec le backend pour être nickel
-      await refreshProtectedData();
+      // en mode anonyme, on masque aussi la carte après feedback
+      hideResultFeedbackCard();
+      setText('analyseMessage', 'Feedback enregistré. Envoie une nouvelle image pour continuer.');
+      return;
     }
 
+    // MODE CONNECTÉ (stats perso)
+    if (Array.isArray(state.guesses) && state.guesses.length > 0) {
+      const idx = state.guesses.findIndex(g => g.id === state.lastGuess.id);
+      if (idx !== -1) {
+        state.guesses[idx] = { ...state.guesses[idx], win };
+      }
+
+      computeStats(state.guesses);
+      updateKPIs();
+      renderHistory();
+      renderCharts();
+    }
+
+    // sync complet avec le backend pour être sûr
+    await refreshProtectedData();
+
+    // dans tous les cas (connecté), la carte doit disparaître après feedback
     hideResultFeedbackCard();
     setText('analyseMessage', 'Feedback enregistré. Envoie une nouvelle image pour continuer.');
   } catch (err) {
     handleAuthError(err, 'feedbackMessage');
   }
 }
+
+// ---------------- LOGIN ----------------
 
 function initLoginEvents() {
   document.getElementById('loginBtn')?.addEventListener('click', async () => {
@@ -354,6 +393,7 @@ function initLoginEvents() {
 
       await refreshProtectedData();
 
+      // si une vue protégée était demandée avant la connexion, on y retourne
       let target = 'historique';
       if (state.ui && state.ui.pendingView && state.auth.isAuthenticated) {
         target = state.ui.pendingView;
@@ -368,6 +408,8 @@ function initLoginEvents() {
     }
   });
 }
+
+// ---------------- HISTORY EVENTS ----------------
 
 async function downloadImage(url, filename = 'image.jpg') {
   try {
@@ -468,6 +510,8 @@ function initHistoryEvents() {
   });
 }
 
+// ---------------- RESULT / FEEDBACK CARD TOGGLE ----------------
+
 function showResultFeedbackCard() {
   const card = document.getElementById('resultFeedbackCard');
   if (!card) return;
@@ -479,6 +523,8 @@ function hideResultFeedbackCard() {
   if (!card) return;
   card.style.display = 'none';
 }
+
+// ---------------- HISTORY FEEDBACK ----------------
 
 async function onHistoryFeedbackClick(btn) {
   if (!state.auth.isAuthenticated) {
@@ -510,7 +556,7 @@ async function onHistoryFeedbackClick(btn) {
   }
 }
 
-// =================== HEADER AUTH ===================
+// ---------------- HEADER AUTH ----------------
 
 function updateHeaderAuth() {
   const center = document.getElementById('headerCenter');
