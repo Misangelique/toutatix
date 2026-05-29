@@ -60,12 +60,25 @@ export function switchView(name) {
 
 export function initNavigation() {
   getSidebarButtons().forEach(btn => {
-    btn.addEventListener('click', () => switchView(btn.dataset.view));
+    btn.addEventListener('click', () => {
+      onNavClick(btn.dataset.view);
+    });
   });
 
   getMobileButtons().forEach(btn => {
-    btn.addEventListener('click', () => switchView(btn.dataset.view));
+    btn.addEventListener('click', () => {
+      onNavClick(btn.dataset.view);
+    });
   });
+}
+
+// nouvelle fonction dans ui.js
+export function onNavClick(viewName) {
+  // on laisse main.js décider s’il doit rafraîchir
+  const event = new CustomEvent('toutatix:navigate', {
+    detail: { view: viewName }
+  });
+  window.dispatchEvent(event);
 }
 
 export function setText(id, text) {

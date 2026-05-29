@@ -26,7 +26,31 @@ document.addEventListener('DOMContentLoaded', () => {
   renderCharts();
 
   switchView('analyse');
+
+  initNavAutoRefresh();
 });
+
+
+// écoute les clics de nav envoyés par ui.js
+function initNavAutoRefresh() {
+  window.addEventListener('toutatix:navigate', async (e) => {
+    const targetView = e.detail?.view;
+    if (!targetView) return;
+
+    // cas vues protégées : historisque / stats
+    if ((targetView === 'historique' || targetView === 'stats') && state.auth.isAuthenticated) {
+      try {
+        await refreshProtectedData();
+      } catch (err) {
+        handleAuthError(err, targetView === 'historique' ? 'historyMessage' : 'loginMessage');
+        return;
+      }
+    }
+
+    switchView(targetView);
+  });
+}
+
 
 function resetAppAfterLogout(message = 'Déconnecté.') {
   setToken('');
@@ -304,22 +328,6 @@ function initHistoryEvents() {
     }
 
     await downloadImage(url, filename);
-  });
-
-  document.getElementById('refreshHistoryBtn')?.addEventListener('click', async () => {
-    if (!state.auth.isAuthenticated) {
-      setText('historyMessage', 'Connexion requise pour lire l’historique.');
-      switchView('connexion');
-      return;
-    }
-
-    setText('historyMessage', 'Chargement…');
-
-    try {
-      await refreshProtectedData(`${state.guesses.length} entrée(s) chargée(s).`);
-    } catch (err) {
-      handleAuthError(err, 'historyMessage');
-    }
   });
 
   document.getElementById('downloadImagesBtn')?.addEventListener('click', async () => {

@@ -74,13 +74,21 @@ function normalizeRole(value) {
 function extractIsAdmin(payload) {
   if (!payload) return false;
 
+  // cas simples (au cas où tu changes plus tard)
   if (payload.admin === true) return true;
   if (payload.isAdmin === true) return true;
 
-  if (normalizeRole(payload.role) === 'admin') return true;
+  // CAS RÉEL DE TON API : admin dans payload.data.admin
+  if (payload.data && payload.data.admin === true) return true;
+
+  const role = normalizeRole(payload.role);
+  if (role === 'admin' || role === 'role_admin') return true;
 
   if (Array.isArray(payload.roles)) {
-    return payload.roles.some(role => normalizeRole(role) === 'admin');
+    return payload.roles.some(r => {
+      const nr = normalizeRole(r);
+      return nr === 'admin' || nr === 'role_admin';
+    });
   }
 
   return false;
@@ -110,9 +118,7 @@ export function setToken(token) {
     } else {
       sessionStorage.removeItem('toutatix_token');
     }
-  } catch {
-    // stockage indisponible
-  }
+  } catch {}
 
   syncAuthFromToken();
 }
@@ -170,4 +176,10 @@ export function computeStats(guesses) {
 
   state.stats = stats;
   return stats;
+}
+
+// uniquement pour debug dans la console
+if (typeof window !== 'undefined') {
+  window.__toutatixState = state;
+  console.log(window.__toutatixState);
 }
