@@ -10,6 +10,9 @@ let selectedFile = null;
 let cameraPreviewEl = null;
 let startCameraBtn = null;
 let stopCameraBtn = null;
+let dropzoneContentEl = null;
+let fileInputEl = null;
+let previewImageEl = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   loadTokenFromStorage();
@@ -148,6 +151,10 @@ function initAnalyseEvents() {
   const preview = document.getElementById('previewImage');
   const dropzoneContent = document.getElementById('dropzoneContent');
 
+  fileInputEl = fileInput;
+  previewImageEl = preview;
+  dropzoneContentEl = dropzoneContent;
+
   cameraPreviewEl = document.getElementById('cameraPreview');
   startCameraBtn = document.getElementById('startCameraBtn');
   stopCameraBtn = document.getElementById('stopCameraBtn');
@@ -181,12 +188,13 @@ function initAnalyseEvents() {
   document.getElementById('resetGuessBtn')?.addEventListener('click', () => {
     selectedFile = null;
 
-    if (fileInput) fileInput.value = '';
-    if (preview) {
-      preview.src = '';
-      preview.style.display = 'none';
+    if (fileInputEl) fileInputEl.value = '';
+    if (previewImageEl) {
+      previewImageEl.src = '';
+      previewImageEl.style.display = 'none';
     }
-    if (dropzoneContent) dropzoneContent.style.display = 'flex';
+    if (dropzoneContentEl) dropzoneContentEl.style.display = 'flex';
+
     hideResultFeedbackCard();
     setText('feedbackMessage', 'Pas de feedback envoyé.');
     state.lastGuess = null;
@@ -216,6 +224,10 @@ async function startCamera() {
 
   if (state.cameraStream) {
     cameraPreviewEl.style.display = 'block';
+    // cacher la dropzone si elle existe
+    if (dropzoneContentEl) {
+      dropzoneContentEl.style.display = 'none';
+    }
     updateCameraButtons();
     return;
   }
@@ -237,8 +249,17 @@ async function startCamera() {
     state.cameraStream = stream;
     cameraPreviewEl.srcObject = stream;
     cameraPreviewEl.style.display = 'block';
-    setText('analyseMessage', 'Caméra activée.');
 
+    // cacher la dropzone quand la caméra est active
+    if (dropzoneContentEl) {
+      dropzoneContentEl.style.display = 'none';
+    }
+    // éventuellement cacher l’aperçu de fichier si tu veux privilégier la caméra
+    if (previewImageEl) {
+      previewImageEl.style.display = 'none';
+    }
+
+    setText('analyseMessage', 'Caméra activée.');
     updateCameraButtons();
   } catch (err) {
     setText('analyseMessage', `Impossible d’accéder à la caméra : ${err.name || ''} ${err.message}`);
@@ -255,8 +276,13 @@ function stopCamera() {
 
   cameraPreviewEl.srcObject = null;
   cameraPreviewEl.style.display = 'none';
-  setText('analyseMessage', 'Caméra désactivée.');
 
+  // réafficher la dropzone (drag and drop)
+  if (dropzoneContentEl) {
+    dropzoneContentEl.style.display = 'flex';
+  }
+
+  setText('analyseMessage', 'Caméra désactivée.');
   updateCameraButtons();
 }
 

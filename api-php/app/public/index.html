@@ -22,7 +22,7 @@
 <!-- HEADER GLOBAL -->
 <header class="global-header">
   <div class="global-header-brand">
-    <span class="global-header-title">Toutatix</span>
+    <span class="global-header-title">Par Toutatix</span>
   </div>
 
   <div class="global-header-center" id="headerCenter">
@@ -71,22 +71,13 @@
   <!-- MAIN -->
   <main class="main">
     <div class="shell">
-      <!-- TOPBAR commune -->
-      <header class="topbar">
-        <div>
-          <h1 class="topbar-title">Application Toutatix</h1>
-          <p class="topbar-text">
-            Analyse d’images Astérix / Obélix, historique protégé et statistiques de l’IA dans une seule interface.
-          </p>
-        </div>
-        <div id="tokenStatus" class="topbar-status">Non connecté</div>
-      </header>
+
 
       <!-- ============ VUE ANALYSE (page 1) ============ -->
       <section class="view view-analyse view-active">
         <div class="hero">
           <div class="hero-left">
-            <h2 class="sous-titre2">Par Toutatis, identifie le héros !</h2>
+            <h2 class="sous-titre2">PAR TOUTATIS, IDENTIFIE LE HEROS !</h2>
             <p class="contenu1">
               Télécharge une image ou utilise la caméra pour tester l’IA : Astérix ou Obélix ?
               Puis envoie ton feedback pour entraîner le modèle.
@@ -123,8 +114,7 @@
           <article class="panel">
             <h3 class="panel-title">Envoyer une image</h3>
             <p class="panel-text">
-              Formats acceptés : JPG / JPEG / PNG. L’image est envoyée à
-              <code>POST /guesses</code> dans le champ <code>guessimage</code>.
+              Formats acceptés : JPG / JPEG / PNG.
             </p>
 
             <div class="dropzone">
@@ -188,14 +178,14 @@
         <article class="panel">
           <div class="actions" style="justify-content:space-between;">
             <div>
-              <h2 class="sous-titre2">Tes découvertes</h2>
+              <h2 class="sous-titre2">TES DECOUVERTES</h2>
               <p class="contenu1">
-                Historique protégé des guesses, accessible uniquement avec un token valide.
+                Par Toutatis ! Voici l'album de tous les braves que tu as croisés dans tes aventures.
               </p>
             </div>
             <div class="history-actions">
               <button id="downloadImagesBtn" class="btn btn-yellow hover-dark">ZIP Images</button>
-              <button id="deleteAllBtn" class="btn btn-secondary hover-dark">Tout supprimer</button>
+              <button id="deleteAllBtn" class="btn btn-primary hover-bright">Tout supprimer</button>
             </div>
           </div>
 
@@ -213,9 +203,9 @@
       <section class="view view-stats">
         <div class="two-col">
           <article class="chart-card">
-            <h2 class="sous-titre2">Le village en chiffres</h2>
+            <h2 class="sous-titre2">LE VILLAGE EN CHIFFRES</h2>
             <p class="contenu1">
-              Répartition des prédictions réussies, ratées, invalides et sans feedback.
+              Par Toutatis ! Découvrez la répartition des prédictions réussies, ratées, invalides et sans feedback.
             </p>
             <div class="chart-wrap">
               <canvas id="statsChart"></canvas>
@@ -223,9 +213,9 @@
           </article>
 
           <article class="chart-card">
-            <h3 class="panel-title">Astérix vs Obélix</h3>
+            <h3 class="sous-titre2">ASTERIX VS OBELIX</h3>
             <p class="panel-text">
-              Part des réponses Astérix et Obélix sur l’ensemble de l’historique.
+              Par Toutatis ! Découvrez la part des réponses Astérix et Obélix sur l’ensemble de l’historique.
             </p>
             <div class="chart-wrap">
               <canvas id="guessTypeChart"></canvas>
@@ -235,9 +225,9 @@
 
         <div style="margin-top:16px;">
           <article class="chart-card">
-            <h3 class="panel-title">Détail par personnage</h3>
+            <h3 class="sous-titre2">DETAIL PAR PERSONNAGE</h3>
             <p class="panel-text">
-              Comparaison entre Astérix et Obélix selon les feedbacks reçus.
+              Par Toutatis ! Découvrez la comparaison entre Astérix et Obélix selon les feedbacks reçus.
             </p>
             <div class="chart-wrap">
               <canvas id="characterDetailChart"></canvas>
