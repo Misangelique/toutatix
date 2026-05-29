@@ -124,8 +124,8 @@ function initAnalyseEvents() {
   if (stopCameraBtn && cameraPreviewEl) {
     stopCameraBtn.addEventListener('click', stopCamera);
   }
+  updateCameraButtons();
 
-  document.getElementById('triggerFileBtn')?.addEventListener('click', () => fileInput?.click());
 
   fileInput?.addEventListener('change', e => {
     const file = e.target.files?.[0];
@@ -167,11 +167,22 @@ function initAnalyseEvents() {
   });
 }
 
+function updateCameraButtons() {
+  if (!startCameraBtn || !stopCameraBtn) return;
+
+  const isOn = !!state.cameraStream;
+
+  // caméra allumée -> on montre "Couper", on cache "Activer"
+  startCameraBtn.style.display = isOn ? 'none' : '';
+  stopCameraBtn.style.display = isOn ? '' : 'none';
+}
+
 async function startCamera() {
   if (!cameraPreviewEl) return;
 
   if (state.cameraStream) {
     cameraPreviewEl.style.display = 'block';
+    updateCameraButtons();
     return;
   }
 
@@ -193,8 +204,10 @@ async function startCamera() {
     cameraPreviewEl.srcObject = stream;
     cameraPreviewEl.style.display = 'block';
     setText('analyseMessage', 'Caméra activée.');
+
+    updateCameraButtons();
   } catch (err) {
-    setText('analyseMessage', `Impossible d'accéder à la caméra : ${err.name || ''} ${err.message}`);
+    setText('analyseMessage', `Impossible d’accéder à la caméra : ${err.name || ''} ${err.message}`);
   }
 }
 
@@ -209,6 +222,8 @@ function stopCamera() {
   cameraPreviewEl.srcObject = null;
   cameraPreviewEl.style.display = 'none';
   setText('analyseMessage', 'Caméra désactivée.');
+
+  updateCameraButtons();
 }
 
 async function onSendGuess() {
