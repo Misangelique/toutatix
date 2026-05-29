@@ -222,6 +222,43 @@ export function renderHistory() {
       body.appendChild(actions);
     }
 
+    // Si aucun feedback n'a été donné pour ce guess, afficher des boutons de feedback
+    const hasFeedback =
+        g.win === 1 || g.win === 0 || g.win === -1 ||
+        g.win === '1' || g.win === '0' || g.win === '-1';
+
+    if (!hasFeedback) {
+      const fbActions = document.createElement('div');
+      fbActions.className = 'actions';
+
+      const btnTrue = document.createElement('button');
+      btnTrue.type = 'button';
+      btnTrue.className = 'btn btn-primary hover-bright history-feedback-btn';
+      btnTrue.dataset.feedback = '1';
+      btnTrue.dataset.guessId = g.id;
+      btnTrue.textContent = 'Vrai';
+
+      const btnUnknown = document.createElement('button');
+      btnUnknown.type = 'button';
+      btnUnknown.className = 'btn btn-yellow hover-dark history-feedback-btn';
+      btnUnknown.dataset.feedback = '0';
+      btnUnknown.dataset.guessId = g.id;
+      btnUnknown.textContent = 'Inconnu';
+
+      const btnFalse = document.createElement('button');
+      btnFalse.type = 'button';
+      btnFalse.className = 'btn btn-secondary hover-dark history-feedback-btn';
+      btnFalse.dataset.feedback = '-1';
+      btnFalse.dataset.guessId = g.id;
+      btnFalse.textContent = 'Faux';
+
+      fbActions.appendChild(btnTrue);
+      fbActions.appendChild(btnUnknown);
+      fbActions.appendChild(btnFalse);
+
+      body.appendChild(fbActions);
+    }
+
     card.appendChild(body);
     container.appendChild(card);
   });

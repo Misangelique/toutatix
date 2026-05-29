@@ -67,7 +67,7 @@ function resetAppAfterLogout(message = 'Déconnecté.') {
   renderCharts();
 
   stopCamera();
-
+  hideResultFeedbackCard();
   setText('historyMessage', 'Connexion requise pour lire l\'historique.');
   setText('loginMessage', message);
 
@@ -153,7 +153,9 @@ function initAnalyseEvents() {
       preview.style.display = 'none';
     }
     if (dropzoneContent) dropzoneContent.style.display = 'flex';
-
+    hideResultFeedbackCard();
+    setText('feedbackMessage', 'Pas de feedback envoyé.');
+    state.lastGuess = null;
     setText('analyseMessage', 'Sélection effacée.');
   });
 
@@ -250,6 +252,9 @@ async function onSendGuess() {
 
     setText('analyseMessage', 'Prédiction reçue.');
     setText('feedbackMessage', 'Tu peux maintenant envoyer un feedback.');
+
+    // afficher la carte Résultat et feedback
+    showResultFeedbackCard();
   } catch (err) {
     setText('analyseMessage', `Erreur : ${err.message}`);
   }
@@ -258,6 +263,12 @@ async function onSendGuess() {
 async function onFeedback(win) {
   if (!state.lastGuess?.id) {
     setText('feedbackMessage', 'Aucune prédiction à corriger.');
+    return;
+  }
+
+  // si cette prédiction a déjà un feedback, on bloque
+  if (state.lastGuess.win === 1 || state.lastGuess.win === 0 || state.lastGuess.win === -1) {
+    setText('feedbackMessage', 'Feedback déjà envoyé pour cette prédiction.');
     return;
   }
 
@@ -270,9 +281,17 @@ async function onFeedback(win) {
         `Feedback enregistré. Total : ${data.total ?? '—'} · Wins : ${data.win ?? '—'}`
     );
 
+    // on marque localement qu'il y a désormais un feedback
+    state.lastGuess.win = win;
+
     if (state.auth.isAuthenticated) {
       await refreshProtectedData();
     }
+
+
+    // masquer la carte après feedback
+    hideResultFeedbackCard();
+    setText('analyseMessage', 'Feedback enregistré. Envoie une nouvelle image pour continuer.');
   } catch (err) {
     handleAuthError(err, 'feedbackMessage');
   }
@@ -331,19 +350,27 @@ async function downloadImage(url, filename = 'image.jpg') {
 }
 
 function initHistoryEvents() {
-  document.getElementById('historyGrid')?.addEventListener('click', async e => {
-    const btn = e.target.closest('.guess-download-btn');
-    if (!btn) return;
+  const grid = document.getElementById('historyGrid');
 
-    const url = btn.dataset.imageUrl;
-    const filename = btn.dataset.filename || 'guess-image.jpg';
+  grid?.addEventListener('click', async e => {
+    const downloadBtn = e.target.closest('.guess-download-btn');
+    if (downloadBtn) {
+      const url = downloadBtn.dataset.imageUrl;
+      const filename = downloadBtn.dataset.filename || 'guess-image.jpg';
 
-    if (!url) {
-      setText('historyMessage', 'Aucune image à télécharger.');
+      if (!url) {
+        setText('historyMessage', 'Aucune image à télécharger.');
+        return;
+      }
+
+      await downloadImage(url, filename);
       return;
     }
 
-    await downloadImage(url, filename);
+    const fbBtn = e.target.closest('.history-feedback-btn');
+    if (fbBtn) {
+      await onHistoryFeedbackClick(fbBtn);
+    }
   });
 
   document.getElementById('downloadImagesBtn')?.addEventListener('click', async () => {
@@ -397,6 +424,48 @@ function initHistoryEvents() {
       handleAuthError(err, 'historyMessage');
     }
   });
+}
+
+function showResultFeedbackCard() {
+  const card = document.getElementById('resultFeedbackCard');
+  if (!card) return;
+  card.style.display = 'block';
+}
+
+function hideResultFeedbackCard() {
+  const card = document.getElementById('resultFeedbackCard');
+  if (!card) return;
+  card.style.display = 'none';
+}
+
+async function onHistoryFeedbackClick(btn) {
+  if (!state.auth.isAuthenticated) {
+    setText('historyMessage', 'Connexion requise pour envoyer un feedback.');
+    switchView('connexion');
+    return;
+  }
+
+  const guessId = Number(btn.dataset.guessId);
+  const win = Number(btn.dataset.feedback);
+
+  if (!guessId || Number.isNaN(win)) {
+    setText('historyMessage', 'Feedback invalide.');
+    return;
+  }
+
+  setText('historyMessage', 'Envoi du feedback…');
+
+  try {
+    const data = await putFeedback(guessId, win);
+    setText(
+        'historyMessage',
+        `Feedback enregistré. Total : ${data.total ?? '—'} · Wins : ${data.win ?? '—'}`
+    );
+
+    await refreshProtectedData('Historique mis à jour.');
+  } catch (err) {
+    handleAuthError(err, 'historyMessage');
+  }
 }
 
 // =================== HEADER AUTH ===================
