@@ -176,7 +176,7 @@ export function renderHistory() {
 
     const meta = document.createElement('div');
     meta.className = 'guess-meta';
-    meta.innerHTML = `<span>#${g.id ?? '—'}</span><span>${formatDate(g.date)}</span>`;
+    meta.innerHTML = `#${g.id ?? '—'}${formatDate(g.date)}`;
     body.appendChild(meta);
 
     const title = document.createElement('h4');

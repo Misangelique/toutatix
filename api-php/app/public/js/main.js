@@ -281,15 +281,51 @@ async function onFeedback(win) {
         `Feedback enregistré. Total : ${data.total ?? '—'} · Wins : ${data.win ?? '—'}`
     );
 
-    // on marque localement qu'il y a désormais un feedback
+    // marquer localement le feedback sur la dernière prédiction
     state.lastGuess.win = win;
 
-    if (state.auth.isAuthenticated) {
+    // ============================
+    // MODE ANONYME (non connecté)
+    // ============================
+    if (!state.auth.isAuthenticated) {
+      const totalEl = document.getElementById('kpiTotal');
+      const accEl = document.getElementById('kpiAccuracy');
+      const noteEl = document.getElementById('kpiNote');
+
+      if (totalEl && accEl && data && typeof data.total === 'number' && typeof data.win === 'number') {
+        const total = data.total;
+        const wins = data.win;
+        const acc = total ? Math.round((wins / total) * 100) : 0;
+
+        totalEl.textContent = String(total);
+        accEl.textContent = `${acc} %`;
+
+        if (noteEl) {
+          noteEl.textContent = `Basé sur ${total} image(s) feedbackées (global).`;
+        }
+      }
+
+    } else {
+      // ============================
+      // MODE CONNECTÉ (stats perso)
+      // ============================
+
+      // si on a déjà l'historique en mémoire, on met à jour l'entrée correspondante
+      if (Array.isArray(state.guesses) && state.guesses.length > 0) {
+        const idx = state.guesses.findIndex(g => g.id === state.lastGuess.id);
+        if (idx !== -1) {
+          state.guesses[idx] = { ...state.guesses[idx], win };
+        }
+
+        // recalcul complet des stats utilisateur et update des KPI
+        computeStats(state.guesses);
+        updateKPIs();
+      }
+
+      // et on synchronise avec le backend pour être nickel
       await refreshProtectedData();
     }
 
-
-    // masquer la carte après feedback
     hideResultFeedbackCard();
     setText('analyseMessage', 'Feedback enregistré. Envoie une nouvelle image pour continuer.');
   } catch (err) {
