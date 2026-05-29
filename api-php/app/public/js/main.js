@@ -18,9 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initAnalyseEvents();
   initHistoryEvents();
   initLoginEvents();
+  initHeaderAuth();
 
   computeStats([]);
   updateAuthUI();
+  updateHeaderAuth();
   updateKPIs();
   renderHistory();
   renderCharts();
@@ -59,13 +61,14 @@ function resetAppAfterLogout(message = 'Déconnecté.') {
 
   computeStats([]);
   updateAuthUI();
+  updateHeaderAuth();
   updateKPIs();
   renderHistory();
   renderCharts();
 
   stopCamera();
 
-  setText('historyMessage', 'Connexion requise pour lire l’historique.');
+  setText('historyMessage', 'Connexion requise pour lire l\'historique.');
   setText('loginMessage', message);
 
   switchView('connexion');
@@ -191,7 +194,7 @@ async function startCamera() {
     cameraPreviewEl.style.display = 'block';
     setText('analyseMessage', 'Caméra activée.');
   } catch (err) {
-    setText('analyseMessage', `Impossible d’accéder à la caméra : ${err.name || ''} ${err.message}`);
+    setText('analyseMessage', `Impossible d'accéder à la caméra : ${err.name || ''} ${err.message}`);
   }
 }
 
@@ -210,11 +213,11 @@ function stopCamera() {
 
 async function onSendGuess() {
   if (!selectedFile) {
-    setText('analyseMessage', 'Choisis une image avant de lancer l’analyse.');
+    setText('analyseMessage', 'Choisis une image avant de lancer l\'analyse.');
     return;
   }
 
-  setText('analyseMessage', 'Envoi de l’image…');
+  setText('analyseMessage', 'Envoi de l\'image…');
 
   try {
     const data = await postGuess(selectedFile);
@@ -276,6 +279,7 @@ function initLoginEvents() {
       const data = await login(email, pass);
       setToken(data.token);
       updateAuthUI();
+      updateHeaderAuth();
       setText('loginMessage', data.message || 'Connexion réussie.');
 
       await refreshProtectedData();
@@ -283,12 +287,9 @@ function initLoginEvents() {
     } catch (err) {
       setToken('');
       updateAuthUI();
+      updateHeaderAuth();
       setText('loginMessage', `Erreur : ${err.message}`);
     }
-  });
-
-  document.getElementById('logoutBtn')?.addEventListener('click', () => {
-    resetAppAfterLogout('Déconnecté.');
   });
 }
 
@@ -367,7 +368,7 @@ function initHistoryEvents() {
       return;
     }
 
-    if (!confirm('Supprimer tout l’historique et toutes les images ?')) return;
+    if (!confirm('Supprimer tout l\'historique et toutes les images ?')) return;
 
     try {
       const data = await deleteGuesses();
@@ -379,6 +380,45 @@ function initHistoryEvents() {
       setText('historyMessage', data.message || 'Historique supprimé.');
     } catch (err) {
       handleAuthError(err, 'historyMessage');
+    }
+  });
+}
+
+// =================== HEADER AUTH ===================
+
+function updateHeaderAuth() {
+  const center = document.getElementById('headerCenter');
+  if (!center) return;
+
+  if (!state.auth.isAuthenticated || !state.auth.user) {
+    center.innerHTML = '';
+    center.style.display = 'none';
+    return;
+  }
+
+  const email =
+      state.auth.user?.data?.username ||
+      state.auth.user?.username ||
+      state.auth.user?.email ||
+      state.auth.user?.sub ||
+      '';
+
+  center.innerHTML = `
+    <img src="assets/header-screen.png" alt="Toutatix" class="global-header-screen">
+    <span class="global-header-email">${email}</span>
+  `;
+  center.style.display = 'flex';
+}
+
+function initHeaderAuth() {
+  const headerBtn = document.getElementById('headerAuthBtn');
+  if (!headerBtn) return;
+
+  headerBtn.addEventListener('click', () => {
+    if (state.auth.isAuthenticated) {
+      resetAppAfterLogout('Déconnecté.');
+    } else {
+      switchView('connexion');
     }
   });
 }

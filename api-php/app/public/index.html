@@ -19,289 +19,290 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div class="app">
-    <!-- SIDEBAR (desktop) -->
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <div class="sidebar-logo">TT</div>
-        <div>
-          <div class="sidebar-title">Toutatix</div>
-          <div class="sidebar-subtitle">Défie l’IA Astérix / Obélix</div>
-        </div>
-      </div>
-
-      <nav class="nav">
-        <button class="nav-btn nav-btn-active" data-view="analyse">
-          <div class="nav-btn-icon">📸</div>
-          <div class="nav-btn-label">
-            <div class="nav-btn-title">Défiez‑moi</div>
-            <div class="nav-btn-subtitle">Envoyer une image</div>
-          </div>
-        </button>
-
-        <button class="nav-btn" data-view="historique">
-          <div class="nav-btn-icon">📚</div>
-          <div class="nav-btn-label">
-            <div class="nav-btn-title">Historique</div>
-            <div class="nav-btn-subtitle">Guesses enregistrés</div>
-          </div>
-        </button>
-
-        <button class="nav-btn" data-view="stats">
-          <div class="nav-btn-icon">📊</div>
-          <div class="nav-btn-label">
-            <div class="nav-btn-title">Stats</div>
-            <div class="nav-btn-subtitle">Graphiques de l’IA</div>
-          </div>
-        </button>
-
-        <button class="nav-btn" data-view="connexion">
-          <div class="nav-btn-icon">🔐</div>
-          <div class="nav-btn-label">
-            <div class="nav-btn-title">Connexion</div>
-            <div class="nav-btn-subtitle">Token protégé</div>
-          </div>
-        </button>
-      </nav>
-
-      <div class="sidebar-footer">
-        API : <code>http://localhost:8080/api</code>
-      </div>
-    </aside>
-
-    <!-- MAIN -->
-    <main class="main">
-      <div class="shell">
-        <!-- TOPBAR commune -->
-        <header class="topbar">
-          <div>
-            <h1 class="topbar-title">Application Toutatix</h1>
-            <p class="topbar-text">
-              Analyse d’images Astérix / Obélix, historique protégé et statistiques de l’IA dans une seule interface.
-            </p>
-          </div>
-          <div id="tokenStatus" class="topbar-status">Non connecté</div>
-        </header>
-
-        <!-- ============ VUE ANALYSE (page 1) ============ -->
-        <section class="view view-analyse view-active">
-          <div class="hero">
-            <div class="hero-left">
-              <h2 class="sous-titre2">Par Toutatis, identifie le héros !</h2>
-              <p class="contenu1">
-                Télécharge une image ou utilise la caméra pour tester l’IA : Astérix ou Obélix ?
-                Puis envoie ton feedback pour entraîner le modèle.
-              </p>
-
-              <div class="actions">
-                <button id="triggerFileBtn" class="btn btn-primary hover-bright">
-                  Choisir une image
-                </button>
-                <button id="startCameraBtn" class="btn btn-yellow hover-dark">
-                  Activer la caméra
-                </button>
-                <button id="stopCameraBtn" class="btn btn-secondary hover-dark">
-                  Couper la caméra
-                </button>
-              </div>
-
-              <video id="cameraPreview" class="camera-preview" autoplay playsinline></video>
-            </div>
-
-            <div class="hero-stats">
-              <div class="kpi">
-                <div class="kpi-label">Guesses total</div>
-                <div id="kpiTotal" class="kpi-value">0</div>
-                <div class="kpi-note">Somme de tous les essais</div>
-              </div>
-              <div class="kpi">
-                <div class="kpi-label">Précision</div>
-                <div id="kpiAccuracy" class="kpi-value">0%</div>
-                <div class="kpi-note">Parmi les prédictions notées</div>
-              </div>
-              <div class="kpi">
-                <div class="kpi-label">Astérix</div>
-                <div id="kpiAsterix" class="kpi-value">0</div>
-                <div class="kpi-note">Prédictions Astérix</div>
-              </div>
-              <div class="kpi">
-                <div class="kpi-label">Obélix</div>
-                <div id="kpiObelix" class="kpi-value">0</div>
-                <div class="kpi-note">Prédictions Obélix</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="two-col" style="margin-top:16px;">
-            <article class="panel">
-              <h3 class="panel-title">Envoyer une image</h3>
-              <p class="panel-text">
-                Formats acceptés : JPG / JPEG / PNG. L’image est envoyée à
-                <code>POST /guesses</code> dans le champ <code>guessimage</code>.
-              </p>
-
-              <div class="dropzone">
-                <input id="guessFile" type="file" accept="image/png,image/jpeg,image/jpg" />
-                <div id="dropzoneContent" class="dropzone-content">
-                  <div class="dropzone-icon">🛡️</div>
-                  <strong>Dépose ton image ici ou clique pour choisir un fichier</strong>
-                  <span class="contenu2">Aucune requête envoyée pour le moment.</span>
-                </div>
-                <img id="previewImage" class="preview-image" alt="Aperçu" />
-              </div>
-
-              <div class="actions">
-                <button id="sendGuessBtn" class="btn btn-primary hover-bright">
-                  Lancer l’analyse
-                </button>
-                <button id="resetGuessBtn" class="btn btn-ghost hover-dark">
-                  Réinitialiser
-                </button>
-              </div>
-
-              <div id="analyseMessage" class="message-box">
-                Choisis une image puis clique sur “Lancer l’analyse”.
-              </div>
-            </article>
-
-            <article class="panel">
-              <h3 class="panel-title">Résultat et feedback</h3>
-              <p class="panel-text">
-                Après la prédiction de l’IA, valide ou corrige le résultat pour enrichir l’historique.
-              </p>
-
-              <div class="result-box">
-                <div class="guess-meta">
-                  <span class="contenu2">Dernière prédiction</span>
-                  <span id="guessIdBadge" class="badge badge-yellow">ID : —</span>
-                </div>
-                <div id="guessResultLabel" class="kpi-value" style="margin-top:6px;">
-                  Aucune
-                </div>
-                <div id="guessMetaText" class="contenu2" style="margin-top:8px;">
-                  Aucune image analysée.
-                </div>
-              </div>
-
-              <div class="feedback-actions">
-                <button class="btn btn-primary hover-bright" data-feedback="1">Vrai</button>
-                <button class="btn btn-yellow hover-dark" data-feedback="0">Inconnu</button>
-                <button class="btn btn-secondary hover-dark" data-feedback="-1">Faux</button>
-              </div>
-
-              <div id="feedbackMessage" class="mini-box">
-                Pas de feedback envoyé.
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <!-- ============ VUE HISTORIQUE (page 2) ============ -->
-        <section class="view view-historique">
-          <article class="panel">
-            <div class="actions" style="justify-content:space-between;">
-              <div>
-                <h2 class="sous-titre2">Tes découvertes</h2>
-                <p class="contenu1">
-                  Historique protégé des guesses, accessible uniquement avec un token valide.
-                </p>
-              </div>
-              <div class="history-actions">
-                <button id="downloadImagesBtn" class="btn btn-yellow hover-dark">ZIP Images</button>
-                <button id="deleteAllBtn" class="btn btn-secondary hover-dark">Tout supprimer</button>
-              </div>
-            </div>
-
-            <div id="historyMessage" class="message-box">
-              Historique non chargé.
-            </div>
-            <div id="historyEmpty" class="empty-state">
-              Connecte‑toi puis clique sur “Rafraîchir” pour récupérer les guesses.
-            </div>
-            <div id="historyGrid" class="history-grid"></div>
-          </article>
-        </section>
-
-        <!-- ============ VUE STATS (page 3) ============ -->
-        <section class="view view-stats">
-          <div class="two-col">
-            <article class="chart-card">
-              <h2 class="sous-titre2">Le village en chiffres</h2>
-              <p class="contenu1">
-                Répartition des prédictions réussies, ratées, invalides et sans feedback.
-              </p>
-              <div class="chart-wrap">
-                <canvas id="statsChart"></canvas>
-              </div>
-            </article>
-
-            <article class="chart-card">
-              <h3 class="panel-title">Astérix vs Obélix</h3>
-              <p class="panel-text">
-                Part des réponses Astérix et Obélix sur l’ensemble de l’historique.
-              </p>
-              <div class="chart-wrap">
-                <canvas id="guessTypeChart"></canvas>
-              </div>
-            </article>
-          </div>
-
-          <div style="margin-top:16px;">
-            <article class="chart-card">
-              <h3 class="panel-title">Détail par personnage</h3>
-              <p class="panel-text">
-                Comparaison entre Astérix et Obélix selon les feedbacks reçus.
-              </p>
-              <div class="chart-wrap">
-                <canvas id="characterDetailChart"></canvas>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <!-- ============ VUE CONNEXION (page 4) ============ -->
-        <section class="view view-connexion">
-          <article class="login-card">
-            <h2 class="sous-titre2">Connexion</h2>
-            <p class="contenu1">
-              Envoie tes identifiants à <code>POST /login</code> pour récupérer un token JWT
-              et accéder aux routes protégées (<code>/guesses</code>, <code>/guesses/images</code>, etc.).
-            </p>
-
-            <div class="login-grid">
-              <div class="field">
-                <label for="emailInput">Email</label>
-                <input id="emailInput" type="email" placeholder="obelix@irreductibles.fr" />
-              </div>
-              <div class="field">
-                <label for="passwordInput">Mot de passe</label>
-                <input id="passwordInput" type="password" placeholder="Mot de passe" />
-              </div>
-            </div>
-
-            <div class="auth-actions">
-              <button id="loginBtn" class="btn btn-primary hover-bright">Se connecter</button>
-              <button id="logoutBtn" class="btn btn-secondary hover-dark">Déconnexion</button>
-            </div>
-
-            <div id="loginMessage" class="message-box">
-              Aucun token chargé.
-            </div>
-          </article>
-        </section>
-      </div>
-    </main>
+<!-- HEADER GLOBAL -->
+<header class="global-header">
+  <div class="global-header-brand">
+    <span class="global-header-title">Toutatix</span>
   </div>
 
-  <!-- NAV MOBILE (en bas) -->
-  <nav class="footer-nav-mobile">
-    <button class="mobile-btn mobile-btn-active" data-view="analyse">Scan</button>
-    <button class="mobile-btn" data-view="historique">Historique</button>
-    <button class="mobile-btn" data-view="stats">Stats</button>
-    <button class="mobile-btn" data-view="connexion">Login</button>
-  </nav>
+  <div class="global-header-center" id="headerCenter">
+    <!-- rempli par JS -->
+  </div>
 
-  <!-- JS : point d’entrée unique -->
-  <script type="module" src="js/main.js"></script>
+  <button id="headerAuthBtn" class="global-header-auth-btn">
+    <img src="assets/header-icon.png" alt="Connexion" class="global-header-icon">
+  </button>
+</header>
+
+<div class="app">
+  <!-- SIDEBAR (desktop) -->
+  <aside class="sidebar">
+
+
+    <nav class="nav">
+      <button class="nav-btn nav-btn-active" data-view="analyse">
+        <div class="nav-btn-icon">📸</div>
+        <div class="nav-btn-label">
+          <div class="nav-btn-title">Défiez‑moi</div>
+          <div class="nav-btn-subtitle">Envoyer une image</div>
+        </div>
+      </button>
+
+      <button class="nav-btn" data-view="historique">
+        <div class="nav-btn-icon">📚</div>
+        <div class="nav-btn-label">
+          <div class="nav-btn-title">Historique</div>
+          <div class="nav-btn-subtitle">Guesses enregistrés</div>
+        </div>
+      </button>
+
+      <button class="nav-btn" data-view="stats">
+        <div class="nav-btn-icon">📊</div>
+        <div class="nav-btn-label">
+          <div class="nav-btn-title">Stats</div>
+          <div class="nav-btn-subtitle">Graphiques de l’IA</div>
+        </div>
+      </button>
+
+
+    </nav>
+
+    <div class="sidebar-footer">
+      API : <code>http://localhost:8080/api</code>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="shell">
+      <!-- TOPBAR commune -->
+      <header class="topbar">
+        <div>
+          <h1 class="topbar-title">Application Toutatix</h1>
+          <p class="topbar-text">
+            Analyse d’images Astérix / Obélix, historique protégé et statistiques de l’IA dans une seule interface.
+          </p>
+        </div>
+        <div id="tokenStatus" class="topbar-status">Non connecté</div>
+      </header>
+
+      <!-- ============ VUE ANALYSE (page 1) ============ -->
+      <section class="view view-analyse view-active">
+        <div class="hero">
+          <div class="hero-left">
+            <h2 class="sous-titre2">Par Toutatis, identifie le héros !</h2>
+            <p class="contenu1">
+              Télécharge une image ou utilise la caméra pour tester l’IA : Astérix ou Obélix ?
+              Puis envoie ton feedback pour entraîner le modèle.
+            </p>
+
+            <div class="actions">
+              <button id="triggerFileBtn" class="btn btn-primary hover-bright">
+                Choisir une image
+              </button>
+              <button id="startCameraBtn" class="btn btn-yellow hover-dark">
+                Activer la caméra
+              </button>
+              <button id="stopCameraBtn" class="btn btn-secondary hover-dark">
+                Couper la caméra
+              </button>
+            </div>
+
+            <video id="cameraPreview" class="camera-preview" autoplay playsinline></video>
+          </div>
+
+          <div class="hero-stats">
+            <div class="kpi">
+              <div class="kpi-label">Guesses total</div>
+              <div id="kpiTotal" class="kpi-value">0</div>
+              <div class="kpi-note">Somme de tous les essais</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Précision</div>
+              <div id="kpiAccuracy" class="kpi-value">0%</div>
+              <div class="kpi-note">Parmi les prédictions notées</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Astérix</div>
+              <div id="kpiAsterix" class="kpi-value">0</div>
+              <div class="kpi-note">Prédictions Astérix</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Obélix</div>
+              <div id="kpiObelix" class="kpi-value">0</div>
+              <div class="kpi-note">Prédictions Obélix</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="two-col" style="margin-top:16px;">
+          <article class="panel">
+            <h3 class="panel-title">Envoyer une image</h3>
+            <p class="panel-text">
+              Formats acceptés : JPG / JPEG / PNG. L’image est envoyée à
+              <code>POST /guesses</code> dans le champ <code>guessimage</code>.
+            </p>
+
+            <div class="dropzone">
+              <input id="guessFile" type="file" accept="image/png,image/jpeg,image/jpg" />
+              <div id="dropzoneContent" class="dropzone-content">
+                <div class="dropzone-icon">🛡️</div>
+                <strong>Dépose ton image ici ou clique pour choisir un fichier</strong>
+                <span class="contenu2">Aucune requête envoyée pour le moment.</span>
+              </div>
+              <img id="previewImage" class="preview-image" alt="Aperçu" />
+            </div>
+
+            <div class="actions">
+              <button id="sendGuessBtn" class="btn btn-primary hover-bright">
+                Lancer l’analyse
+              </button>
+              <button id="resetGuessBtn" class="btn btn-ghost hover-dark">
+                Réinitialiser
+              </button>
+            </div>
+
+            <div id="analyseMessage" class="message-box">
+              Choisis une image puis clique sur “Lancer l’analyse”.
+            </div>
+          </article>
+
+          <article class="panel">
+            <h3 class="panel-title">Résultat et feedback</h3>
+            <p class="panel-text">
+              Après la prédiction de l’IA, valide ou corrige le résultat pour enrichir l’historique.
+            </p>
+
+            <div class="result-box">
+              <div class="guess-meta">
+                <span class="contenu2">Dernière prédiction</span>
+                <span id="guessIdBadge" class="badge badge-yellow">ID : —</span>
+              </div>
+              <div id="guessResultLabel" class="kpi-value" style="margin-top:6px;">
+                Aucune
+              </div>
+              <div id="guessMetaText" class="contenu2" style="margin-top:8px;">
+                Aucune image analysée.
+              </div>
+            </div>
+
+            <div class="feedback-actions">
+              <button class="btn btn-primary hover-bright" data-feedback="1">Vrai</button>
+              <button class="btn btn-yellow hover-dark" data-feedback="0">Inconnu</button>
+              <button class="btn btn-secondary hover-dark" data-feedback="-1">Faux</button>
+            </div>
+
+            <div id="feedbackMessage" class="mini-box">
+              Pas de feedback envoyé.
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ============ VUE HISTORIQUE (page 2) ============ -->
+      <section class="view view-historique">
+        <article class="panel">
+          <div class="actions" style="justify-content:space-between;">
+            <div>
+              <h2 class="sous-titre2">Tes découvertes</h2>
+              <p class="contenu1">
+                Historique protégé des guesses, accessible uniquement avec un token valide.
+              </p>
+            </div>
+            <div class="history-actions">
+              <button id="downloadImagesBtn" class="btn btn-yellow hover-dark">ZIP Images</button>
+              <button id="deleteAllBtn" class="btn btn-secondary hover-dark">Tout supprimer</button>
+            </div>
+          </div>
+
+          <div id="historyMessage" class="message-box">
+            Historique non chargé.
+          </div>
+          <div id="historyEmpty" class="empty-state">
+            Connecte‑toi puis clique sur “Rafraîchir” pour récupérer les guesses.
+          </div>
+          <div id="historyGrid" class="history-grid"></div>
+        </article>
+      </section>
+
+      <!-- ============ VUE STATS (page 3) ============ -->
+      <section class="view view-stats">
+        <div class="two-col">
+          <article class="chart-card">
+            <h2 class="sous-titre2">Le village en chiffres</h2>
+            <p class="contenu1">
+              Répartition des prédictions réussies, ratées, invalides et sans feedback.
+            </p>
+            <div class="chart-wrap">
+              <canvas id="statsChart"></canvas>
+            </div>
+          </article>
+
+          <article class="chart-card">
+            <h3 class="panel-title">Astérix vs Obélix</h3>
+            <p class="panel-text">
+              Part des réponses Astérix et Obélix sur l’ensemble de l’historique.
+            </p>
+            <div class="chart-wrap">
+              <canvas id="guessTypeChart"></canvas>
+            </div>
+          </article>
+        </div>
+
+        <div style="margin-top:16px;">
+          <article class="chart-card">
+            <h3 class="panel-title">Détail par personnage</h3>
+            <p class="panel-text">
+              Comparaison entre Astérix et Obélix selon les feedbacks reçus.
+            </p>
+            <div class="chart-wrap">
+              <canvas id="characterDetailChart"></canvas>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ============ VUE CONNEXION (page 4) ============ -->
+      <section class="view view-connexion">
+        <article class="login-card">
+          <h2 class="sous-titre2">Connexion</h2>
+          <p class="contenu1">
+            Envoie tes identifiants à <code>POST /login</code> pour récupérer un token JWT
+            et accéder aux routes protégées (<code>/guesses</code>, <code>/guesses/images</code>, etc.).
+          </p>
+
+          <div class="login-grid">
+            <div class="field">
+              <label for="emailInput">Email</label>
+              <input id="emailInput" type="email" placeholder="obelix@irreductibles.fr" />
+            </div>
+            <div class="field">
+              <label for="passwordInput">Mot de passe</label>
+              <input id="passwordInput" type="password" placeholder="Mot de passe" />
+            </div>
+          </div>
+
+          <div class="auth-actions">
+            <button id="loginBtn" class="btn btn-primary hover-bright">Se connecter</button>
+          </div>
+
+          <div id="loginMessage" class="message-box">
+            Aucun token chargé.
+          </div>
+        </article>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- NAV MOBILE (en bas) -->
+<nav class="footer-nav-mobile">
+  <button class="mobile-btn mobile-btn-active" data-view="analyse">Scan</button>
+  <button class="mobile-btn" data-view="historique">Historique</button>
+  <button class="mobile-btn" data-view="stats">Stats</button>
+</nav>
+
+<!-- JS : point d’entrée unique -->
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -14,7 +14,7 @@
    =========================== */
 
 .app {
-  min-height: 100vh;
+  min-height: calc(100vh - 64px);
   display: grid;
   grid-template-columns: 260px 1fr;
 }
@@ -723,5 +723,125 @@
     font-size: 15px;
     min-width: 38px;
     padding: 6px 8px;
+  }
+}
+
+/* ===========================
+   Header global (toutes pages)
+   =========================== */
+
+.global-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background-color: #fff1ec;
+  border-bottom: 4px solid #2c1810;
+  box-shadow: 0 4px 0 0 #906f6e;
+  position: relative;
+  z-index: 100;
+}
+
+.global-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.global-header-title {
+  font-family: "Irish Grover", system-ui;
+  font-size: 44px;
+  color: #9e001f;
+  letter-spacing: -1px;
+}
+
+.global-header-center {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-user-area {
+  display: none;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-user-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.header-user-email {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.global-header-screen {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 50%;
+  border: 3px solid #2c1810;
+}
+
+.global-header-email {
+  font-family: "Spline Sans", system-ui;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c1810;
+  white-space: nowrap;
+}
+
+.global-header-auth-btn {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.global-header-auth-btn:hover {
+  transform: scale(1.1);
+  opacity: 0.85;
+}
+
+.global-header-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+@media (max-width: 960px) {
+  .global-header {
+    padding: 8px 14px;
+  }
+
+  .global-header-title {
+    font-size: 22px;
+  }
+
+  .global-header-screen {
+    width: 34px;
+    height: 34px;
+  }
+
+  .global-header-email {
+    font-size: 12px;
+  }
+
+  .global-header-auth-btn {
+    width: 36px;
+    height: 36px;
   }
 }
