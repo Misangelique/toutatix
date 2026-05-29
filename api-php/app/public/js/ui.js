@@ -100,15 +100,35 @@ export function updateAuthUI() {
 }
 
 export function updateKPIs() {
-  const total = document.getElementById('kpiTotal');
-  const accuracy = document.getElementById('kpiAccuracy');
-  const asterix = document.getElementById('kpiAsterix');
-  const obelix = document.getElementById('kpiObelix');
+  const totalEl = document.getElementById('kpiTotal');
+  const accEl = document.getElementById('kpiAccuracy');
+  const noteEl = document.getElementById('kpiNote');
 
-  if (total) total.textContent = String(state.stats.total);
-  if (accuracy) accuracy.textContent = `${state.stats.accuracy}%`;
-  if (asterix) asterix.textContent = String(state.stats.asterix);
-  if (obelix) obelix.textContent = String(state.stats.obelix);
+  if (!totalEl || !accEl) return;
+
+  const stats = state.stats || {};
+  const fbCount = (stats.wins || 0) + (stats.invalid || 0) + (stats.losses || 0);
+
+  // Aucun feedback => on masque les stats sur "Défie-moi"
+  if (fbCount === 0) {
+    totalEl.textContent = '--';
+    accEl.textContent = '-- %';
+    if (noteEl) {
+      noteEl.textContent = 'Donne un premier feedback pour voir tes stats.';
+    }
+    return;
+  }
+
+  // Il y a au moins un feedback => on montre uniquement total + précision
+  const total = stats.total || 0;
+  const accuracy = stats.accuracy ?? 0;
+
+  totalEl.textContent = String(total);
+  accEl.textContent = `${accuracy} %`;
+
+  if (noteEl) {
+    noteEl.textContent = `Basé sur ${fbCount} image(s) annotée(s).`;
+  }
 }
 
 export function renderHistory() {

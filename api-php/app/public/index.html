@@ -37,8 +37,6 @@
 <div class="app">
   <!-- SIDEBAR (desktop) -->
   <aside class="sidebar">
-
-
     <nav class="nav">
       <button class="nav-btn nav-btn-active" data-view="analyse">
         <div class="nav-btn-icon">📸</div>
@@ -63,8 +61,6 @@
           <div class="nav-btn-subtitle">Graphiques de l’IA</div>
         </div>
       </button>
-
-
     </nav>
 
     <div class="sidebar-footer">
@@ -108,26 +104,17 @@
             <video id="cameraPreview" class="camera-preview" autoplay playsinline></video>
           </div>
 
+          <!-- KPI : uniquement total + précision, le reste est géré en JS -->
           <div class="hero-stats">
             <div class="kpi">
               <div class="kpi-label">Guesses total</div>
-              <div id="kpiTotal" class="kpi-value">0</div>
-              <div class="kpi-note">Somme de tous les essais</div>
+              <div id="kpiTotal" class="kpi-value">--</div>
+              <div id="kpiNoteTotal" class="kpi-note">Donne un feedback pour voir tes stats.</div>
             </div>
             <div class="kpi">
               <div class="kpi-label">Précision</div>
-              <div id="kpiAccuracy" class="kpi-value">0%</div>
-              <div class="kpi-note">Parmi les prédictions notées</div>
-            </div>
-            <div class="kpi">
-              <div class="kpi-label">Astérix</div>
-              <div id="kpiAsterix" class="kpi-value">0</div>
-              <div class="kpi-note">Prédictions Astérix</div>
-            </div>
-            <div class="kpi">
-              <div class="kpi-label">Obélix</div>
-              <div id="kpiObelix" class="kpi-value">0</div>
-              <div class="kpi-note">Prédictions Obélix</div>
+              <div id="kpiAccuracy" class="kpi-value">-- %</div>
+              <div id="kpiNoteAccuracy" class="kpi-note">Basée sur les images annotées.</div>
             </div>
           </div>
         </div>
@@ -216,7 +203,7 @@
             Historique non chargé.
           </div>
           <div id="historyEmpty" class="empty-state">
-            Connecte‑toi puis clique sur “Rafraîchir” pour récupérer les guesses.
+            Connecte‑toi pour récupérer les guesses.
           </div>
           <div id="historyGrid" class="history-grid"></div>
         </article>
