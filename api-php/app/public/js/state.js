@@ -78,8 +78,11 @@ function extractIsAdmin(payload) {
   if (payload.admin === true) return true;
   if (payload.isAdmin === true) return true;
 
-  // CAS RÉEL DE TON API : admin dans payload.data.admin
-  if (payload.data && payload.data.admin === true) return true;
+  // CAS RÉEL DE TON API : admin dans payload.data.admin, avec 1 comme entier
+  if (payload.data && payload.data.admin != null) {
+    const val = payload.data.admin;
+    if (val === true || val === 1 || val === '1') return true;
+  }
 
   const role = normalizeRole(payload.role);
   if (role === 'admin' || role === 'role_admin') return true;
@@ -176,10 +179,4 @@ export function computeStats(guesses) {
 
   state.stats = stats;
   return stats;
-}
-
-// uniquement pour debug dans la console
-if (typeof window !== 'undefined') {
-  window.__toutatixState = state;
-  console.log(window.__toutatixState);
 }
