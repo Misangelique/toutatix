@@ -34,8 +34,18 @@ export function switchView(name) {
   let target = name;
 
   if (PROTECTED_VIEWS.has(target) && !state.auth.isAuthenticated) {
+    // mémoriser la vue protégée demandée
+    if (state.ui) {
+      state.ui.pendingView = target;
+    }
     setText('loginMessage', 'Connexion requise pour accéder à cette vue.');
     target = 'connexion';
+  } else {
+    // si on navigue vers une vue non protégée ou déjà autorisée,
+    // on oublie la pendingView éventuelle
+    if (state.ui) {
+      state.ui.pendingView = null;
+    }
   }
 
   getViews().forEach(v => {
@@ -74,7 +84,6 @@ export function initNavigation() {
 
 // nouvelle fonction dans ui.js
 export function onNavClick(viewName) {
-  // on laisse main.js décider s’il doit rafraîchir
   const event = new CustomEvent('toutatix:navigate', {
     detail: { view: viewName }
   });

@@ -353,7 +353,13 @@ function initLoginEvents() {
       setText('loginMessage', data.message || 'Connexion réussie.');
 
       await refreshProtectedData();
-      switchView('historique');
+
+      let target = 'historique';
+      if (state.ui && state.ui.pendingView && state.auth.isAuthenticated) {
+        target = state.ui.pendingView;
+      }
+
+      switchView(target);
     } catch (err) {
       setToken('');
       updateAuthUI();

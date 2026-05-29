@@ -34,7 +34,10 @@ export const state = {
   guesses: [],
   lastGuess: null,
   stats: createEmptyStats(),
-  cameraStream: null
+  cameraStream: null,
+  ui: {
+    pendingView: null
+  }
 };
 
 function decodeBase64Url(base64Url) {
